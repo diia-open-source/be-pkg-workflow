@@ -1,0 +1,10 @@
+{
+    "extends": "../tsconfig",
+    "compilerOptions": {
+        "types": ["vite/client", "vitest/globals"],
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "isolatedModules": true
+    },
+    "include": ["./**/*", "../vitest.config.mts"]
+}

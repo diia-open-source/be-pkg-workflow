@@ -1,0 +1,139 @@
+{
+    "name": "@diia-inhouse/workflow",
+    "version": "1.15.0",
+    "description": "Workflow",
+    "main": "dist/index.js",
+    "types": "dist/types/index.d.ts",
+    "repository": "https://gitlab.diia.org.ua/diia-inhouse/pkg-workflow.git",
+    "author": "Diia",
+    "files": [
+        "dist"
+    ],
+    "engines": {
+        "node": ">=22"
+    },
+    "bin": {
+        "diia-workflow": "dist/cli/index.js"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/types/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.js"
+        },
+        "./activity": {
+            "types": "./dist/types/activity.d.ts",
+            "import": "./dist/activity.js",
+            "require": "./dist/activity.js"
+        },
+        "./client": {
+            "types": "./dist/types/client.d.ts",
+            "import": "./dist/client.js",
+            "require": "./dist/client.js"
+        },
+        "./common": {
+            "types": "./dist/types/common.d.ts",
+            "import": "./dist/common.js",
+            "require": "./dist/common.js"
+        },
+        "./operations": {
+            "types": "./dist/types/operations.d.ts",
+            "import": "./dist/operations.js",
+            "require": "./dist/operations.js"
+        },
+        "./worker": {
+            "types": "./dist/types/worker.d.ts",
+            "import": "./dist/worker.js",
+            "require": "./dist/worker.js"
+        },
+        "./testing": {
+            "types": "./dist/types/testing.d.ts",
+            "import": "./dist/testing.js",
+            "require": "./dist/testing.js"
+        }
+    },
+    "scripts": {
+        "prebuild": "rimraf dist",
+        "build": "tsc",
+        "semantic-release": "semantic-release",
+        "start": "npm run build && node dist/index.js",
+        "lint": "eslint . && prettier --check .",
+        "lint-fix": "eslint --fix . && prettier --write .",
+        "lint:lockfile": "lockfile-lint --path package-lock.json --allowed-hosts registry.npmjs.org --validate-https",
+        "prepare": "npm run build",
+        "test": "tsc --project tests/tsconfig.json --noEmit && vitest run",
+        "test:watch": "vitest watch",
+        "find-circulars": "madge --circular --extensions ts ./"
+    },
+    "dependencies": {
+        "@opentelemetry/api": "1.9.0",
+        "@opentelemetry/exporter-trace-otlp-grpc": "0.57.2",
+        "@opentelemetry/resources": "1.30.1",
+        "@opentelemetry/sdk-trace-node": "1.30.1",
+        "@opentelemetry/semantic-conventions": "1.39.0",
+        "@temporalio/activity": "1.12.1",
+        "@temporalio/client": "1.12.1",
+        "@temporalio/common": "1.12.1",
+        "@temporalio/interceptors-opentelemetry": "1.12.1",
+        "@temporalio/proto": "1.12.1",
+        "@temporalio/testing": "1.12.1",
+        "@temporalio/worker": "1.12.1",
+        "@temporalio/workflow": "1.12.1",
+        "lodash": "4.17.23",
+        "ts-node": "10.9.2",
+        "yargs": "18.0.0"
+    },
+    "peerDependencies": {
+        "@diia-inhouse/diia-logger": ">=3.0.0",
+        "@diia-inhouse/diia-metrics": ">=3.14.2",
+        "@diia-inhouse/diia-queue": ">=13.1.0",
+        "@diia-inhouse/env": ">=2.3.0",
+        "@diia-inhouse/healthcheck": ">=1.14.0",
+        "@diia-inhouse/types": ">=6.0.0",
+        "@diia-inhouse/utils": ">=4.24.0"
+    },
+    "peerDependenciesMeta": {
+        "@diia-inhouse/diia-queue": {
+            "optional": true
+        },
+        "@diia-inhouse/healthcheck": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@diia-inhouse/configs": "6.1.1",
+        "@diia-inhouse/diia-logger": "3.16.0",
+        "@diia-inhouse/diia-metrics": "6.4.0",
+        "@diia-inhouse/env": "2.8.1",
+        "@diia-inhouse/eslint-config": "8.4.0",
+        "@diia-inhouse/diia-queue": "13.2.0",
+        "@diia-inhouse/healthcheck": "1.17.0",
+        "@diia-inhouse/test": "7.2.0",
+        "@diia-inhouse/types": "11.3.0",
+        "@diia-inhouse/utils": "5.3.0",
+        "@types/lodash": "4.17.23",
+        "@types/node": "24.9.1",
+        "@types/yargs": "17.0.35",
+        "@vitest/coverage-v8": "4.0.17",
+        "@vitest/ui": "4.0.17",
+        "eslint": "9.39.2",
+        "glob": "11.1.0",
+        "lockfile-lint": "4.14.1",
+        "madge": "8.0.0",
+        "rimraf": "6.1.2",
+        "semantic-release": "24.2.9",
+        "vite-tsconfig-paths": "6.0.4",
+        "vitest": "4.0.17",
+        "vitest-mock-extended": "3.1.0"
+    },
+    "release": {
+        "extends": "@diia-inhouse/configs/dist/semantic-release/package",
+        "branches": [
+            "main"
+        ]
+    },
+    "commitlint": {
+        "extends": "@diia-inhouse/configs/dist/commitlint"
+    },
+    "prettier": "@diia-inhouse/eslint-config/prettier"
+}
