@@ -1,6 +1,6 @@
 {
     "name": "@diia-inhouse/workflow",
-    "version": "1.15.2",
+    "version": "1.16.0",
     "description": "Workflow",
     "main": "dist/index.js",
     "types": "dist/types/index.d.ts",

@@ -116,12 +116,24 @@ async function main(): Promise<void> {
                         type: 'string',
                         describe: 'Task queue name',
                     })
+                    .option('historyDir', {
+                        type: 'string',
+                        describe: 'Path to directory with dumped history JSON files (skips Temporal server connection)',
+                    })
+                    .option('limit', {
+                        type: 'number',
+                        describe: 'Max number of history files to check (default: all)',
+                    })
                     .positional('workflowId', {
                         type: 'string',
                         describe: 'Specific workflow ID to check (optional)',
                     })
                     .example('diia-workflow check-determinism', 'Check recent completed or failed workflows for determinism issues')
-                    .example('diia-workflow check-determinism my-workflow-id', 'Check a specific workflow by ID for determinism issues'),
+                    .example('diia-workflow check-determinism my-workflow-id', 'Check a specific workflow by ID for determinism issues')
+                    .example(
+                        'diia-workflow check-determinism --historyDir ./temporal-dumps',
+                        'Check determinism against local history files',
+                    ),
             async (argv) => {
                 const logger = new DiiaLogger()
                 const envService = new EnvService(logger)
@@ -130,7 +142,9 @@ async function main(): Promise<void> {
                 try {
                     const command = new CheckWorkflowDeterminismCommand(logger, envService)
 
-                    await command.run(argv.workflowsPath, argv.taskQueue, argv.workflowId)
+                    await (argv.historyDir
+                        ? command.runFromFiles(argv.workflowsPath, argv.historyDir, argv.limit)
+                        : command.run(argv.workflowsPath, argv.taskQueue, argv.workflowId))
                 } finally {
                     await envService.onDestroy()
                 }
