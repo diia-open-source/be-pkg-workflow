@@ -328,53 +328,38 @@ export class CheckWorkflowDeterminismCommand {
     }
 
     private async listCompletedOrFailedWorkflows(client: TemporalClient, workflowsPath: string): Promise<string[]> {
-        const workflowsByType: Record<string, string[]> = {}
         const taskQueue = this.getTaskQueue() || 'default'
-
-        const completedOrFailedWorkflows = client.workflow.list({
-            query: `TaskQueue="${taskQueue}" AND (ExecutionStatus="Completed" OR ExecutionStatus="Failed")`,
-        })
-
-        for await (const workflow of completedOrFailedWorkflows) {
-            const workflowType = workflow.type
-
-            if (!workflowsByType[workflowType]) {
-                workflowsByType[workflowType] = []
-            }
-
-            if (workflowsByType[workflowType].length < this.maxWorkflowsPerType) {
-                workflowsByType[workflowType].push(workflow.workflowId)
-
-                if (workflowsByType[workflowType].length === this.maxWorkflowsPerType) {
-                    this.logger.info(`Reached limit of ${this.maxWorkflowsPerType} workflows for type '${workflowType}'`)
-                }
-            }
-        }
-
-        const workflowTypes = Object.keys(workflowsByType)
         const relevantWorkflows = await this.loadWorkflows(workflowsPath)
         const relevantWorkflowTypes = Object.keys(relevantWorkflows)
 
-        const filteredWorkflowsByType: Record<string, string[]> = {}
+        const workflowIds: string[] = []
+        const typesWithWorkflows: string[] = []
 
-        for (const [type, workflows] of Object.entries(workflowsByType)) {
-            if (relevantWorkflowTypes.includes(type)) {
-                filteredWorkflowsByType[type] = workflows
+        for (const workflowType of relevantWorkflowTypes) {
+            const workflows = client.workflow.list({
+                query: `TaskQueue="${taskQueue}" AND WorkflowType="${workflowType}" AND (ExecutionStatus="Completed" OR ExecutionStatus="Failed")`,
+                pageSize: this.maxWorkflowsPerType,
+            })
+
+            let count = 0
+
+            for await (const workflow of workflows) {
+                workflowIds.push(workflow.workflowId)
+                count++
+
+                if (count >= this.maxWorkflowsPerType) {
+                    break
+                }
+            }
+
+            if (count > 0) {
+                typesWithWorkflows.push(workflowType)
             }
         }
 
-        const filteredWorkflowTypes = Object.keys(filteredWorkflowsByType)
-        const excludedCount = workflowTypes.length - filteredWorkflowTypes.length
+        this.logger.info(`Found workflows of ${typesWithWorkflows.length} relevant types: ${typesWithWorkflows.join(', ')}`)
 
-        this.logger.info(`Found workflows of ${filteredWorkflowTypes.length} relevant types: ${filteredWorkflowTypes.join(', ')}`)
-
-        if (excludedCount > 0) {
-            const excludedTypes = workflowTypes.filter((type) => !relevantWorkflowTypes.includes(type))
-
-            this.logger.info(`🚫 Excluded ${excludedCount} workflow types which are missing in codebase: ${excludedTypes.join(', ')}`)
-        }
-
-        return Object.values(filteredWorkflowsByType).flat()
+        return workflowIds
     }
 
     private getTaskQueue(): string | undefined {
