@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
+import path from 'node:path'
 
 import { Resource } from '@opentelemetry/resources'
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
@@ -90,6 +91,8 @@ export function applyWorkerProcessConfig(config: AppConfig): void {
  * Builds worker interceptors with OpenTelemetry and AsyncLocalStorage support.
  * OpenTelemetry creates span first, then AsyncLocalStorage bridge extracts traceId.
  */
+const traceLogAttributesModulePath = path.resolve(__dirname, '../interceptors/traceLogAttributes')
+
 function buildWorkerInterceptors(
     tracingEnabled: boolean,
     asyncLocalStorage: AsyncLocalStorage<AlsData> | undefined,
@@ -97,6 +100,12 @@ function buildWorkerInterceptors(
     workflowsPath: string | undefined,
 ): WorkerInterceptors | undefined {
     if (tracingEnabled) {
+        const workflowModules = [traceLogAttributesModulePath]
+
+        if (workflowsPath) {
+            workflowModules.unshift(workflowsPath)
+        }
+
         return {
             activity: [
                 (ctx: ActivityContext): ActivityInterceptors => ({
@@ -111,7 +120,7 @@ function buildWorkerInterceptors(
                       ]
                     : []),
             ],
-            workflowModules: workflowsPath ? [workflowsPath] : [],
+            workflowModules,
         }
     }
 
