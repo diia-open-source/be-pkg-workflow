@@ -1,6 +1,6 @@
 {
     "name": "@diia-inhouse/workflow",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "description": "Workflow",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -102,9 +102,9 @@
     "devDependencies": {
         "@diia-inhouse/configs": "7.0.0",
         "@diia-inhouse/diia-logger": "4.3.0",
-        "@diia-inhouse/diia-metrics": "7.1.5",
-        "@diia-inhouse/diia-queue": "14.0.12",
-        "@diia-inhouse/env": "3.3.1",
+        "@diia-inhouse/diia-metrics": "7.1.6",
+        "@diia-inhouse/diia-queue": "14.0.13",
+        "@diia-inhouse/env": "3.3.2",
         "@diia-inhouse/healthcheck": "2.1.10",
         "@diia-inhouse/oxc-config": "1.10.0",
         "@diia-inhouse/test": "8.2.1",
