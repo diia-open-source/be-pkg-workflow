@@ -1,13 +1,13 @@
 export {
     Client,
-    ScheduleOptions,
+    type ScheduleOptions,
     DAYS_OF_WEEK,
     type DayOfWeek,
     MONTHS,
     type Month,
     WorkflowClient,
     ActivityFailure,
-    ProtoFailure,
+    type ProtoFailure,
     ServerFailure,
     TimeoutFailure,
     TemporalFailure,
@@ -15,7 +15,7 @@ export {
     TerminatedFailure,
     ApplicationFailure,
     ChildWorkflowFailure,
-    WorkflowHandleWithFirstExecutionRunId,
+    type WorkflowHandleWithFirstExecutionRunId,
 } from '@temporalio/client'
 
-export { TemporalClient } from './services/client'
+export { TemporalClient } from './services/client.js'

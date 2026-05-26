@@ -2,12 +2,12 @@
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
-import DiiaLogger from '@diia-inhouse/diia-logger'
+import { DiiaLogger } from '@diia-inhouse/diia-logger'
 import { EnvService } from '@diia-inhouse/env'
 
-import { CheckWorkflowDeterminismCommand } from './checkWorkflowDeterminism'
-import { SyncTemporalSchedulesCommand } from './syncTemporalSchedules'
-import { UpdateTemporalScheduleCommand } from './updateTemporalSchedule'
+import { CheckWorkflowDeterminismCommand } from './checkWorkflowDeterminism.js'
+import { SyncTemporalSchedulesCommand } from './syncTemporalSchedules.js'
+import { UpdateTemporalScheduleCommand } from './updateTemporalSchedule.js'
 
 async function main(): Promise<void> {
     await yargs(hideBin(process.argv))
@@ -82,7 +82,9 @@ async function main(): Promise<void> {
                         throw new Error('Update data must be a valid JSON object')
                     }
                 } catch (err) {
-                    throw new Error(`Invalid JSON format. Please provide a valid JSON object. Error: ${(err as Error).message}`)
+                    throw new Error(`Invalid JSON format. Please provide a valid JSON object. Error: ${(err as Error).message}`, {
+                        cause: err,
+                    })
                 }
 
                 if (Object.keys(updateData).length === 0) {

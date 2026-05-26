@@ -7,14 +7,17 @@ import {
     ScheduleSummary,
     ScheduleUpdateOptions,
 } from '@temporalio/client'
-import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry/lib/client'
-import { merge } from 'lodash'
+import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry/lib/client/index.js'
+import lodash from 'lodash'
 
 import { EnvService } from '@diia-inhouse/env'
 import { Logger, OnInit } from '@diia-inhouse/types'
 
-import { getDataConverter } from '../encryption/dataConverter'
-import { TemporalConfig } from '../interfaces/config'
+import { getDataConverter } from '../encryption/dataConverter.js'
+import { TemporalConfig } from '../interfaces/config.js'
+
+// oxlint-disable-next-line typescript/unbound-method
+const { merge } = lodash
 
 export class TemporalClient implements OnInit {
     nativeClient!: Client

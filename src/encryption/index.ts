@@ -1,5 +1,5 @@
-export * from './dataConverter'
+export * from './dataConverter.js'
 
-export * from './encryptionCodec'
+export * from './encryptionCodec.js'
 
-export * from './crypto'
+export * from './crypto.js'

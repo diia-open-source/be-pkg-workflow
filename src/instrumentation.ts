@@ -2,7 +2,7 @@ import { OTLPTraceExporter as OTLPTraceExporterGrpc } from '@opentelemetry/expor
 
 import { EnvService } from '@diia-inhouse/env'
 
-export const traceExporter = new OTLPTraceExporterGrpc({
+export const traceExporter: OTLPTraceExporterGrpc = new OTLPTraceExporterGrpc({
     url:
         EnvService.getVar('TRACING_EXPORTER_URL', 'string', 'http://localhost:4317') ||
         'http://opentelemetry-collector.tracing.svc.cluster.local:4317',

@@ -2,16 +2,14 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 
 import { ScheduleAlreadyRunning, ScheduleOptions } from '@temporalio/client'
-import { register } from 'ts-node'
 
 import { EnvService } from '@diia-inhouse/env'
 import { Logger } from '@diia-inhouse/types'
+// oxlint-disable-next-line eslint/no-restricted-imports
 import { utils } from '@diia-inhouse/utils'
 
-import { TemporalConfig } from '../interfaces/config'
-import { TemporalClient } from '../services/client'
-
-register()
+import { TemporalConfig } from '../interfaces/config.js'
+import { TemporalClient } from '../services/client.js'
 
 export class SyncTemporalSchedulesCommand {
     constructor(
@@ -54,7 +52,6 @@ export class SyncTemporalSchedulesCommand {
 
         await client.nativeClient.connection.close()
 
-        // eslint-disable-next-line unicorn/no-process-exit
         process.exit(0)
     }
 
@@ -69,9 +66,9 @@ export class SyncTemporalSchedulesCommand {
             return
         }
 
-        const module = await import(fullSchedulesPath)
+        const { default: _default, ...schedules } = await import(fullSchedulesPath)
 
-        return module.default
+        return schedules as Record<string, ((config: TemporalConfig) => ScheduleOptions) | ScheduleOptions>
     }
 
     private resolveSchedulesPath(schedulesPath: string): string {

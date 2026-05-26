@@ -1,8 +1,10 @@
+import { setTimeout as wait } from 'node:timers/promises'
+
 import { ReplayWorkerOptions, Worker } from '@temporalio/worker'
 import { DeterminismViolationError } from '@temporalio/workflow'
 
-import { classifyReplayError } from './errorClassifier'
-import { HistoryEntry, ReplayOutcome } from './types'
+import { classifyReplayError } from './errorClassifier.js'
+import { HistoryEntry, ReplayOutcome } from './types.js'
 
 export interface ReplayConfig {
     maxRetries: number
@@ -43,7 +45,7 @@ export async function replaySingle(
             if (attempt > 1) {
                 const delay = Math.min(config.retryDelayMs * Math.pow(2, attempt - 2), 4000)
 
-                await new Promise((resolve) => setTimeout(resolve, delay))
+                await wait(delay)
             }
 
             await runWithTimeout(options, history, workflowId, config.timeoutMs)
@@ -90,7 +92,7 @@ const DEFAULT_BATCH_TIMEOUT_MS = 30_000
 export async function* replayBatch(
     options: ReplayWorkerOptions,
     entries: HistoryEntry[],
-    timeoutMs = DEFAULT_BATCH_TIMEOUT_MS,
+    timeoutMs: number = DEFAULT_BATCH_TIMEOUT_MS,
 ): AsyncGenerator<ReplayOutcome> {
     const entryMap = new Map(entries.map((e) => [e.workflowId, e]))
     const entryOrder = entries.map((e) => e.workflowId)
@@ -105,10 +107,7 @@ export async function* replayBatch(
     const iterator = Worker.runReplayHistories(options, historyIterator())[Symbol.asyncIterator]()
 
     while (true) {
-        const nextResult = await Promise.race([
-            iterator.next(),
-            new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), timeoutMs)),
-        ])
+        const nextResult = await Promise.race([iterator.next(), wait(timeoutMs).then((): 'timeout' => 'timeout')])
 
         if (nextResult === 'timeout') {
             // The replay stream is stuck — emit timeout for the current expected workflow and abort

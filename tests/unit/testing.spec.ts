@@ -1,3 +1,4 @@
+/* oxlint-disable vitest/require-mock-type-parameters */
 import { describe, expect, it, vi } from 'vitest'
 
 import { mockActivities } from '../../src/testing'
@@ -20,7 +21,6 @@ describe('mockActivities', () => {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const activities = {
         sample1: SampleActivity1,
         sample: SampleActivity2,

@@ -1,5 +1,4 @@
-/* eslint-disable no-redeclare */
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* oxlint-disable typescript/explicit-function-return-type */
 import { ActivityInterfaceFor, ActivityOptions, proxyActivities, proxyLocalActivities } from '@temporalio/workflow'
 
 type ActivityClass<T> = T extends { prototype: infer P } ? P : never
@@ -15,7 +14,7 @@ type LocalActivityOptions = Parameters<typeof proxyLocalActivities>[0]
  * @returns {Object} Proxy with class name prefixing for activity methods
  *
  * @example
- * import type { workerActivities } from '../activities'
+ * import type { workerActivities } from '../activities/index.js'
  *
  * const activities = buildActivitiesProxy<typeof workerActivities>();
  *
@@ -58,7 +57,7 @@ export function buildActivitiesProxy<TActivity extends Record<string, unknown>>(
                     const activities = (useLocalActivitiesProxy ? proxyLocalActivities<A>(options) : proxyActivities<A>(options)) as A
 
                     return new Proxy({} as Record<string, unknown>, {
-                        get: function (_target, prop: string): (...args: unknown[]) => Promise<unknown> {
+                        get: function (_inner, prop: string): (...args: unknown[]) => Promise<unknown> {
                             const activityName = `${activityType}.${prop}` as keyof A
                             const activityFn = activities[activityName] as (...args: unknown[]) => Promise<unknown>
 

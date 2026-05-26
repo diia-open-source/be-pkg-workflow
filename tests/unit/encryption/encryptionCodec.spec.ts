@@ -1,7 +1,7 @@
 import { Payload, ValueError } from '@temporalio/common'
-import { encode } from '@temporalio/common/lib/encoding'
+import { encode } from '@temporalio/common/lib/encoding.js'
 
-import DiiaLogger from '@diia-inhouse/diia-logger'
+import { DiiaLogger } from '@diia-inhouse/diia-logger'
 import { EnvService, ProcessedTransitKey } from '@diia-inhouse/env'
 
 import { EncryptionCodec } from '../../../src/encryption/encryptionCodec'
@@ -27,7 +27,7 @@ class MockEnvService extends EnvService {
 
         return {
             key: key2,
-            fullKeyName: `${keyId}/${2}`,
+            fullKeyName: `${keyId}/2`,
         }
     }
 

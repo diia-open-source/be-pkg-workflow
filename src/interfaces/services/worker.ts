@@ -1,11 +1,28 @@
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
+/* oxlint-disable typescript/no-explicit-any */
 import { WorkerOptions, WorkerStatus } from '@temporalio/worker'
+
+/**
+ * Structural type for the OpenTelemetry tracer provider that pkg-workflow accepts.
+ *
+ * pkg-workflow only needs the `service.name` resource attribute. By matching that
+ * shape structurally (instead of importing `NodeTracerProvider` from a pinned
+ * `@opentelemetry/sdk-trace-node` major), we accept providers from both OTel 1.x
+ * (where `resource` is a public field) and OTel 2.x (where it is private and the
+ * value is read defensively at runtime).
+ *
+ * `getTracer` is required because it is the only public member shared by both
+ * OTel majors — without it TypeScript's weak-type check rejects 2.x providers
+ * (whose other state is private).
+ */
+export interface NodeTracerProviderLike {
+    getTracer(name: string, version?: string, options?: { schemaUrl?: string }): unknown
+    resource?: { attributes?: Record<string, unknown> }
+}
 
 export type { State, WorkerStatus } from '@temporalio/worker'
 
 export type WorkerStatusProvider = () => WorkerStatus
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export type ActivityInstance = Record<string, (...args: any[]) => any>
 
 export type BoundActivities<T extends ActivityInstance> = {
@@ -14,13 +31,16 @@ export type BoundActivities<T extends ActivityInstance> = {
         : (...args: Parameters<T[K]>) => Promise<ReturnType<T[K]>>
 }
 
-// eslint-enable @typescript-eslint/no-explicit-any
 export type ActivityClass = new (...args: any[]) => any
 
 export interface WorkerBootstrapOptions extends Omit<WorkerOptions, 'taskQueue' | 'activities' | 'workflowsPath'> {
+    /**
+     * Path to the workflows module. Accepts either an absolute filesystem path
+     * or a `file://` URL (e.g. from `import.meta.resolve('./worker/workflows/index.js')`).
+     */
     workflowsPath: string
     activities: Record<string, ActivityClass>
-    nodeTracerProvider?: NodeTracerProvider
+    nodeTracerProvider?: NodeTracerProviderLike
     shutdownSignals?: NodeJS.Signals[]
     /**
      * When provided together with `deps`, `bootstrapWorker` manages the full application

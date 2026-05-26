@@ -1,20 +1,20 @@
-export { classifyReplayError, isNewStepsAdded } from './errorClassifier'
+export { classifyReplayError, isNewStepsAdded } from './errorClassifier.js'
 
-export type { ErrorClassification } from './errorClassifier'
+export type { ErrorClassification } from './errorClassifier.js'
 
-export { loadHistoryEntries } from './historyFiles'
+export { loadHistoryEntries } from './historyFiles.js'
 
-export type { LoadHistoryResult } from './historyFiles'
+export type { LoadHistoryResult } from './historyFiles.js'
 
-export { DeterminismReportBuilder } from './report'
+export { DeterminismReportBuilder } from './report.js'
 
-export { buildReplayOptions, resolveWorkflowsPath } from './replayOptions'
+export { buildReplayOptions, resolveWorkflowsPath } from './replayOptions.js'
 
-export { replayBatch, replaySingle } from './replayExecutor'
+export { replayBatch, replaySingle } from './replayExecutor.js'
 
-export { printReport } from './reportPrinter'
+export { printReport } from './reportPrinter.js'
 
-export type { ReportWriter } from './reportPrinter'
+export type { ReportWriter } from './reportPrinter.js'
 
 export type {
     CheckedWorkflowStatus,
@@ -23,4 +23,4 @@ export type {
     ReplayOutcome,
     WorkflowDeterminismError,
     WorkflowRecord,
-} from './types'
+} from './types.js'

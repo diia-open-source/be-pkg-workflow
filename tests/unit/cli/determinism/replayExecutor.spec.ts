@@ -9,8 +9,7 @@ const defaultOptions: ReplayWorkerOptions = { workflowsPath: '/fake/path.js' }
 const defaultConfig = { maxRetries: 3, retryDelayMs: 0, timeoutMs: 5000 }
 
 describe('replaySingle', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let mockRunReplayHistory: any
+    let mockRunReplayHistory: ReturnType<typeof vi.spyOn>
 
     beforeEach(() => {
         mockRunReplayHistory = vi.spyOn(Worker, 'runReplayHistory' as never)
@@ -67,6 +66,7 @@ describe('replaySingle', () => {
     })
 
     it('should return timeout when replay exceeds timeoutMs', async () => {
+        // oxlint-disable-next-line @diia-inhouse/code/no-promise-settimeout
         mockRunReplayHistory.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 10_000)))
 
         const result = await replaySingle(defaultOptions, { events: [] }, 'wf-5', 'MyWorkflow', {
@@ -93,8 +93,7 @@ describe('replaySingle', () => {
 })
 
 describe('replayBatch', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let mockRunReplayHistories: any
+    let mockRunReplayHistories: ReturnType<typeof vi.spyOn>
 
     beforeEach(() => {
         mockRunReplayHistories = vi.spyOn(Worker, 'runReplayHistories' as never)

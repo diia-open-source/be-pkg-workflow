@@ -1,4 +1,4 @@
-import { CheckedWorkflowStatus, DeterminismReport, WorkflowDeterminismError } from './types'
+import { CheckedWorkflowStatus, DeterminismReport, WorkflowDeterminismError } from './types.js'
 
 export class DeterminismReportBuilder {
     private successCount = 0

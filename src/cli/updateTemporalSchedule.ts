@@ -2,10 +2,11 @@ import { ScheduleUpdateOptions } from '@temporalio/client'
 
 import { EnvService } from '@diia-inhouse/env'
 import { Logger } from '@diia-inhouse/types'
+// oxlint-disable-next-line eslint/no-restricted-imports
 import { utils } from '@diia-inhouse/utils'
 
-import { TemporalConfig } from '../interfaces/config'
-import { TemporalClient } from '../services/client'
+import { TemporalConfig } from '../interfaces/config.js'
+import { TemporalClient } from '../services/client.js'
 
 export class UpdateTemporalScheduleCommand {
     constructor(
@@ -46,7 +47,6 @@ export class UpdateTemporalScheduleCommand {
 
         this.logger.info(`Update temporal schedule finished! It took ${((Date.now() - startTime) / 1000).toFixed(1)} seconds`)
 
-        // eslint-disable-next-line unicorn/no-process-exit
         process.exit(0)
     }
 

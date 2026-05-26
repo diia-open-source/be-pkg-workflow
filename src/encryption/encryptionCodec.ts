@@ -1,14 +1,21 @@
 import { webcrypto as crypto } from 'node:crypto'
 
 import { METADATA_ENCODING_KEY, Payload, PayloadCodec, ValueError } from '@temporalio/common'
-import { decode, encode } from '@temporalio/common/lib/encoding'
-import { temporal } from '@temporalio/proto'
+import { decode, encode } from '@temporalio/common/lib/encoding.js'
+import temporalProto from '@temporalio/proto'
 
-import DiiaLogger from '@diia-inhouse/diia-logger'
+import { DiiaLogger } from '@diia-inhouse/diia-logger'
 import { EnvService } from '@diia-inhouse/env'
 import { Logger } from '@diia-inhouse/types'
 
-import { decrypt, encrypt } from './crypto'
+import { decrypt, encrypt } from './crypto.js'
+
+const { temporal } = temporalProto
+
+interface KeyIdParts {
+    name: string
+    version: string
+}
 
 export class EncryptionCodec implements PayloadCodec {
     private readonly batchSize: number
@@ -23,7 +30,6 @@ export class EncryptionCodec implements PayloadCodec {
         options: { batchSize?: number; vaultEnabled?: boolean } = {},
     ) {
         this.batchSize = options.batchSize ?? 50
-        this.defaultKeyId = defaultKeyId
     }
 
     static async create(
@@ -76,7 +82,7 @@ export class EncryptionCodec implements PayloadCodec {
 
             return cryptoKey
         } catch (err) {
-            throw new Error(`Failed to create crypto key: ${(err as Error).message}`)
+            throw new Error(`Failed to create crypto key: ${(err as Error).message}`, { cause: err })
         }
     }
 
@@ -149,7 +155,7 @@ export class EncryptionCodec implements PayloadCodec {
         return results
     }
 
-    private splitKeyId(fullKeyId: string): { name: string; version: string } {
+    private splitKeyId(fullKeyId: string): KeyIdParts {
         const name = fullKeyId.split('/').slice(0, -1).join('/')
         const version = fullKeyId.split('/').at(-1)
 

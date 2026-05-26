@@ -54,9 +54,9 @@ export {
     TemporalFailure,
 } from '@temporalio/workflow'
 
-export { buildActivitiesProxy } from './activities'
+export { buildActivitiesProxy } from './activities/index.js'
 
-export * from './interceptors'
+export * from './interceptors.js'
 
 export function isNonRetryableFailure(err: unknown): err is ActivityFailure {
     if (!(err instanceof ActivityFailure)) {

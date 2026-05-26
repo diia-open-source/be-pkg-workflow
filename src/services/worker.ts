@@ -1,15 +1,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { Resource } from '@opentelemetry/resources'
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions'
 import { Context as ActivityContext } from '@temporalio/activity'
 import {
     OpenTelemetryActivityInboundInterceptor,
     OpenTelemetryActivityOutboundInterceptor,
     makeWorkflowExporter,
-} from '@temporalio/interceptors-opentelemetry/lib/worker'
+} from '@temporalio/interceptors-opentelemetry/lib/worker/index.js'
 import {
     ActivityInterceptors,
     NativeConnection,
@@ -19,26 +19,36 @@ import {
     WorkerInterceptors,
     WorkerOptions,
 } from '@temporalio/worker'
+import * as promClient from 'prom-client'
 
 import { EnvService } from '@diia-inhouse/env'
 import { HealthCheck } from '@diia-inhouse/healthcheck'
 import { AlsData, Logger } from '@diia-inhouse/types'
 
-import { getDataConverter } from '../encryption'
-import { traceExporter } from '../instrumentation'
-import { AsyncLocalStorageBridgeInterceptor } from '../interceptors/asyncLocalStorageBridge'
-import { AppConfig } from '../interfaces/config'
-import type { ActivityClass, ActivityInstance, App, BoundActivities, WorkerBootstrapOptions } from '../interfaces/services/worker'
-import { buildWorkerIdentity } from './worker/identity'
-import { WorkerHealthService } from './workerHealth'
+import { getDataConverter } from '../encryption/index.js'
+import { traceExporter } from '../instrumentation.js'
+import { AsyncLocalStorageBridgeInterceptor } from '../interceptors/asyncLocalStorageBridge.js'
+import { AppConfig } from '../interfaces/config.js'
+import type {
+    ActivityClass,
+    ActivityInstance,
+    App,
+    BoundActivities,
+    NodeTracerProviderLike,
+    WorkerBootstrapOptions,
+} from '../interfaces/services/worker.js'
+import { TemporalClient } from './client.js'
+import { SchedulesExporter } from './schedulesExporter.js'
+import { buildWorkerIdentity } from './worker/identity.js'
+import { WorkerHealthService } from './workerHealth.js'
 
-export type { ActivityClass, App, State, WorkerBootstrapOptions } from '../interfaces/services/worker'
+export type { ActivityClass, App, State, WorkerBootstrapOptions } from '../interfaces/services/worker.js'
 
-export type { WorkerHealthDetails } from './workerHealth'
+export type { WorkerHealthDetails } from './workerHealth.js'
 
-export { buildWorkerIdentity } from './worker/identity'
+export { buildWorkerIdentity } from './worker/identity.js'
 
-export { WorkerHealthService } from './workerHealth'
+export { WorkerHealthService } from './workerHealth.js'
 
 /**
  * Applies service process configuration overrides when the worker runs separately.
@@ -88,10 +98,18 @@ export function applyWorkerProcessConfig(config: AppConfig): void {
 }
 
 /**
+ * Accepts either a filesystem path or a `file://` URL (e.g. from `import.meta.resolve`)
+ * and returns a filesystem path suitable for Temporal's worker.
+ */
+export function toWorkflowsPath(input: string): string {
+    return input.startsWith('file://') ? fileURLToPath(input) : input
+}
+
+/**
  * Builds worker interceptors with OpenTelemetry and AsyncLocalStorage support.
  * OpenTelemetry creates span first, then AsyncLocalStorage bridge extracts traceId.
  */
-const traceLogAttributesModulePath = path.resolve(__dirname, '../interceptors/traceLogAttributes')
+const traceLogAttributesModulePath = path.resolve(import.meta.dirname, '../interceptors/traceLogAttributes')
 
 function buildWorkerInterceptors(
     tracingEnabled: boolean,
@@ -220,7 +238,7 @@ export function instantiateActivities(
  * // Initialize and start the worker
  * await initTemporalWorker(app, {
  *     nodeTracerProvider,
- *     workflowsPath: require.resolve('./worker/workflows'),
+ *     workflowsPath: import.meta.resolve('./worker/workflows/index.js'),
  *     activities: workerActivities,
  * })
  * ```
@@ -228,13 +246,14 @@ export function instantiateActivities(
 export async function initTemporalWorker(
     app: App,
     options: {
-        nodeTracerProvider: NodeTracerProvider
+        nodeTracerProvider: NodeTracerProviderLike
         workflowsPath: string
         activities: Record<string, ActivityClass>
     } & Omit<WorkerOptions, 'taskQueue' | 'activities' | 'workflowsPath'>,
 ): Promise<void> {
     const config = app.getConfig?.() as AppConfig
-    const { nodeTracerProvider, workflowsPath, activities, ...workerOptions } = options
+    const { nodeTracerProvider, workflowsPath: workflowsPathInput, activities, ...workerOptions } = options
+    const workflowsPath = toWorkflowsPath(workflowsPathInput)
 
     const envService = app.container!.resolve<EnvService>('envService')
     const logger = app.container!.resolve<Logger>('logger')
@@ -251,7 +270,13 @@ export async function initTemporalWorker(
         asyncLocalStorage,
     )
 
-    await worker.run()
+    const schedulesExporter = await startSchedulesExporter(app, config, logger)
+
+    try {
+        await worker.run()
+    } finally {
+        await schedulesExporter?.onDestroy().catch((err) => logger.error('SchedulesExporter shutdown failed', { err }))
+    }
 }
 
 /**
@@ -280,7 +305,7 @@ export async function initTemporalWorker(
  * await bootstrapWorker(app, {
  *     configFactory,
  *     deps,
- *     workflowsPath: require.resolve('./worker/workflows'),
+ *     workflowsPath: import.meta.resolve('./worker/workflows/index.js'),
  *     activities: workerActivities,
  *     nodeTracerProvider,
  * })
@@ -290,12 +315,13 @@ export async function bootstrapWorker(app: App, options: WorkerBootstrapOptions)
     const {
         configFactory,
         deps,
-        workflowsPath,
+        workflowsPath: workflowsPathInput,
         activities,
         nodeTracerProvider,
         shutdownSignals = ['SIGTERM', 'SIGINT'],
         ...workerOptions
     } = options
+    const workflowsPath = toWorkflowsPath(workflowsPathInput)
 
     if (configFactory && deps) {
         await app.setConfig!(configFactory)
@@ -339,6 +365,8 @@ export async function bootstrapWorker(app: App, options: WorkerBootstrapOptions)
         asyncLocalStorage,
     )
 
+    const schedulesExporter = await startSchedulesExporter(app, config, logger)
+
     logger.info('Starting Temporal worker', { taskQueue, identity })
 
     const healthCheck = tryResolve<HealthCheck>(app.container!, 'healthCheck')
@@ -363,6 +391,8 @@ export async function bootstrapWorker(app: App, options: WorkerBootstrapOptions)
         for (const signal of shutdownSignals) {
             process.off(signal, signalHandler)
         }
+
+        await schedulesExporter?.onDestroy().catch((err) => logger.error('SchedulesExporter shutdown failed', { err }))
     }
 }
 
@@ -372,6 +402,31 @@ function tryResolve<T>(container: NonNullable<App['container']>, key: string): T
     } catch {
         return undefined
     }
+}
+
+/**
+ * Wires the SchedulesExporter to the in-process worker. Auto-enabled; opt out by setting
+ * `config.temporal.schedulesExporter` to `false`. Returns the exporter so callers can stop
+ * it on shutdown.
+ */
+async function startSchedulesExporter(app: App, config: AppConfig, logger: Logger): Promise<SchedulesExporter | undefined> {
+    const exporterConfig = config.temporal.schedulesExporter
+    if (exporterConfig === false) {
+        return undefined
+    }
+
+    const temporalClient = tryResolve<TemporalClient>(app.container!, 'temporalClient')
+    if (!temporalClient) {
+        logger.warn('SchedulesExporter not started: temporalClient is not registered in the DI container')
+
+        return undefined
+    }
+
+    const exporter = new SchedulesExporter({ client: temporalClient, taskQueue: config.temporal.taskQueue, logger }, exporterConfig ?? {})
+
+    await exporter.onInit()
+
+    return exporter
 }
 
 /**
@@ -390,7 +445,7 @@ export async function initWorker(
     options: Omit<WorkerOptions, 'taskQueue'> & { taskQueue?: string },
     envService: EnvService,
     logger?: Logger,
-    nodeTracerProvider?: NodeTracerProvider,
+    nodeTracerProvider?: NodeTracerProviderLike,
     asyncLocalStorage?: AsyncLocalStorage<AlsData>,
 ): Promise<Worker> {
     const { encryptionEnabled, encryptionKeyId, encryptionKeyRefreshInterval, namespace = 'default', address, taskQueue } = temporalConfig
@@ -416,13 +471,20 @@ export async function initWorker(
 
     Runtime.install(runtimeParams)
 
+    // OTel 1.x exposes `resource` publicly; 2.x renamed it to `_resource` (private).
+    // Read both shapes so the worker accepts a NodeTracerProvider from either major.
+    const providerWithPrivateResource = nodeTracerProvider as
+        | (NodeTracerProviderLike & Record<'_resource', { attributes?: Record<string, unknown> } | undefined>)
+        | undefined
+    const tracerResource = nodeTracerProvider?.resource ?? providerWithPrivateResource?.['_resource']
     const resource = new Resource({
-        [ATTR_SERVICE_NAME]: nodeTracerProvider?.resource.attributes[ATTR_SERVICE_NAME],
+        [ATTR_SERVICE_NAME]: tracerResource?.attributes?.[ATTR_SERVICE_NAME] as string | undefined,
     })
 
     const tracingEnabled = EnvService.getVar('TRACING_ENABLED', 'boolean', false)
 
-    const builtInInterceptors = buildWorkerInterceptors(tracingEnabled, asyncLocalStorage, logger, options.workflowsPath)
+    const workflowsPath = options.workflowsPath ? toWorkflowsPath(options.workflowsPath) : undefined
+    const builtInInterceptors = buildWorkerInterceptors(tracingEnabled, asyncLocalStorage, logger, workflowsPath)
     const mergedInterceptors = mergeInterceptors(builtInInterceptors, options.interceptors)
 
     try {
@@ -434,14 +496,56 @@ export async function initWorker(
                 ? await getDataConverter(encryptionKeyId, envService, encryptionKeyRefreshInterval)
                 : undefined,
             ...options,
+            workflowsPath,
             sinks: tracingEnabled ? { exporter: makeWorkflowExporter(traceExporter, resource) } : undefined,
             interceptors: mergedInterceptors,
         })
+
+        if (workflowsPath && taskQueue) {
+            await emitRegisteredWorkflowTypes(workflowsPath, taskQueue, logger)
+        }
 
         return worker
     } catch (err) {
         logger?.error('Failed to create Temporal worker', { err })
 
         throw new Error('Failed to create Temporal worker', { cause: err })
+    }
+}
+
+/**
+ * Dynamic-imports the workflows entrypoint module and emits
+ * `diia_workflow_registered_type_info{workflow_type, task_queue}=1` for every exported
+ * function. Pairs with `diia_schedule_*` series so a dashboard can detect zombie schedules
+ * (schedules whose workflow type is no longer registered on the same task queue).
+ *
+ * Failures are logged and swallowed — this is observability, not load-bearing.
+ */
+async function emitRegisteredWorkflowTypes(workflowsPath: string, taskQueue: string, logger: Logger | undefined): Promise<void> {
+    try {
+        const url = workflowsPath.startsWith('file://') ? workflowsPath : `file://${workflowsPath}`
+        const mod = (await import(url)) as Record<string, unknown>
+
+        const existing = promClient.register.getSingleMetric('diia_workflow_registered_type_info')
+        const gauge =
+            existing instanceof promClient.Gauge
+                ? (existing as promClient.Gauge<'workflow_type' | 'task_queue'>)
+                : new promClient.Gauge<'workflow_type' | 'task_queue'>({
+                      name: 'diia_workflow_registered_type_info',
+                      help: '1 if the workflow type is registered on this task queue (function exported from the worker entrypoint module)',
+                      labelNames: ['workflow_type', 'task_queue'],
+                  })
+
+        const registered: string[] = []
+        for (const [name, value] of Object.entries(mod)) {
+            if (typeof value === 'function') {
+                gauge.set({ workflow_type: name, task_queue: taskQueue }, 1)
+                registered.push(name)
+            }
+        }
+
+        logger?.info('Registered workflow types emitted to Prometheus', { taskQueue, count: registered.length, types: registered })
+    } catch (err) {
+        logger?.warn('Failed to enumerate registered workflow types', { err })
     }
 }

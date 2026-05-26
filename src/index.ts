@@ -1,5 +1,7 @@
 export * as proto from '@temporalio/proto'
 
-export { TemporalConfig } from './interfaces'
+export type { TemporalConfig } from './interfaces/index.js'
 
-export * from './encryption'
+export type { SchedulesExporterConfig } from './interfaces/services/schedulesExporter.js'
+
+export * from './encryption/index.js'

@@ -5,16 +5,21 @@ import { vi } from 'vitest'
 import { collectHistoryFiles, loadHistoryEntries, parseHistoryFile } from '../../../../src/cli/determinism/historyFiles'
 
 vi.mock('node:fs', () => ({
-    existsSync: vi.fn(),
-    readFileSync: vi.fn(),
-    readdirSync: vi.fn(),
+    existsSync: vi.fn<typeof existsSync>(),
+    readFileSync: vi.fn<typeof readFileSync>(),
+    readdirSync: vi.fn<typeof readdirSync>(),
 }))
 
 const mockExistsSync = vi.mocked(existsSync)
 const mockReadFileSync = vi.mocked(readFileSync)
 const mockReaddirSync = vi.mocked(readdirSync)
 
-const makeDirent = (name: string, isDir: boolean): { name: string; isDirectory: () => boolean } => ({
+interface MockDirent {
+    name: string
+    isDirectory: () => boolean
+}
+
+const makeDirent = (name: string, isDir: boolean): MockDirent => ({
     name,
     isDirectory: (): boolean => isDir,
 })
@@ -126,7 +131,7 @@ describe('loadHistoryEntries', () => {
 
         mockReadFileSync.mockReturnValueOnce(makeHistoryJson('KnownWorkflow')).mockReturnValueOnce(makeHistoryJson('UnknownWorkflow'))
 
-        const workflows = { KnownWorkflow: vi.fn() }
+        const workflows = { KnownWorkflow: vi.fn<() => void>() }
         const result = loadHistoryEntries('/dir', workflows)
 
         expect(result.entries).toHaveLength(1)
@@ -139,7 +144,7 @@ describe('loadHistoryEntries', () => {
 
         mockReadFileSync.mockReturnValue(JSON.stringify({ events: [{ eventType: 'EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED' }] }))
 
-        const result = loadHistoryEntries('/dir', { SomeWorkflow: vi.fn() })
+        const result = loadHistoryEntries('/dir', { SomeWorkflow: vi.fn<() => void>() })
 
         expect(result.entries).toHaveLength(1)
         expect(result.entries[0].workflowType).toBe('unknown')
@@ -151,7 +156,7 @@ describe('loadHistoryEntries', () => {
 
         mockReadFileSync.mockReturnValue(JSON.stringify({ events: [] }))
 
-        const result = loadHistoryEntries('/dir', { SomeWorkflow: vi.fn() })
+        const result = loadHistoryEntries('/dir', { SomeWorkflow: vi.fn<() => void>() })
 
         expect(result.entries).toHaveLength(0)
         expect(result.runningCount).toBe(1)
@@ -167,7 +172,7 @@ describe('loadHistoryEntries', () => {
 
         mockReadFileSync.mockReturnValue(makeHistoryJson('WF'))
 
-        const result = loadHistoryEntries('/dir', { WF: vi.fn() }, { limit: 2 })
+        const result = loadHistoryEntries('/dir', { WF: vi.fn<() => void>() }, { limit: 2 })
 
         expect(result.entries).toHaveLength(2)
     })
@@ -178,8 +183,8 @@ describe('loadHistoryEntries', () => {
 
         mockReadFileSync.mockReturnValueOnce(makeHistoryJson('WF')).mockReturnValueOnce('invalid json')
 
-        const logger = { warn: vi.fn() }
-        const result = loadHistoryEntries('/dir', { WF: vi.fn() }, { logger: logger as never })
+        const logger = { warn: vi.fn<(...args: unknown[]) => void>() }
+        const result = loadHistoryEntries('/dir', { WF: vi.fn<() => void>() }, { logger: logger as never })
 
         expect(result.entries).toHaveLength(1)
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('bad'))
@@ -204,7 +209,7 @@ describe('loadHistoryEntries', () => {
             }),
         )
 
-        const result = loadHistoryEntries('/dir', { WF: vi.fn() }, { encryptionEnabled: false })
+        const result = loadHistoryEntries('/dir', { WF: vi.fn<() => void>() }, { encryptionEnabled: false })
 
         expect(result.entries).toHaveLength(0)
         expect(result.encryptedCount).toBe(1)
@@ -229,7 +234,7 @@ describe('loadHistoryEntries', () => {
             }),
         )
 
-        const result = loadHistoryEntries('/dir', { WF: vi.fn() }, { encryptionEnabled: true })
+        const result = loadHistoryEntries('/dir', { WF: vi.fn<() => void>() }, { encryptionEnabled: true })
 
         expect(result.entries).toHaveLength(1)
         expect(result.encryptedCount).toBe(0)

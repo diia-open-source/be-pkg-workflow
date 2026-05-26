@@ -1,9 +1,9 @@
 import { WorkerStatus } from '@temporalio/worker'
-import { PollerState } from '@temporalio/worker/lib/worker'
+import { PollerState } from '@temporalio/worker/lib/worker.js'
 
 import { HealthCheckResult, HttpStatusCode, OnHealthCheck } from '@diia-inhouse/types'
 
-import { WorkerStatusProvider } from '../interfaces/services/worker'
+import { WorkerStatusProvider } from '../interfaces/services/worker.js'
 
 export interface WorkerHealthDetails {
     worker: WorkerStatus | 'NOT_INITIALIZED'

@@ -1,6 +1,6 @@
 import { format } from 'node:util'
 
-import { CheckedWorkflowStatus, DeterminismReport } from './types'
+import { CheckedWorkflowStatus, DeterminismReport } from './types.js'
 
 export interface ReportWriter {
     write(s: string): void

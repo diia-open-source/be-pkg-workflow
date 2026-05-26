@@ -1,6 +1,6 @@
 import { DeterminismViolationError } from '@temporalio/workflow'
 
-import { WorkflowDeterminismError } from './types'
+import { WorkflowDeterminismError } from './types.js'
 
 interface DeterminismViolationClassification {
     type: 'determinism-violation'

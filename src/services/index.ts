@@ -1,3 +1,3 @@
-export * from './client'
+export * from './client.js'
 
-export * from './worker'
+export * from './worker/index.js'

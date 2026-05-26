@@ -1,15 +1,15 @@
-/* eslint-disable unicorn/no-process-exit */
 import { existsSync } from 'node:fs'
+import { setTimeout as wait } from 'node:timers/promises'
 
 import { Runtime } from '@temporalio/worker'
-import { register } from 'ts-node'
 
 import { EnvService } from '@diia-inhouse/env'
 import { Logger } from '@diia-inhouse/types'
+// oxlint-disable-next-line eslint/no-restricted-imports
 import { utils } from '@diia-inhouse/utils'
 
-import { TemporalConfig } from '../interfaces'
-import { TemporalClient } from '../services/client'
+import { TemporalConfig } from '../interfaces/index.js'
+import { TemporalClient } from '../services/client.js'
 import {
     DeterminismReportBuilder,
     buildReplayOptions,
@@ -19,10 +19,8 @@ import {
     replayBatch,
     replaySingle,
     resolveWorkflowsPath,
-} from './determinism'
-import { WorkflowRecord } from './determinism/types'
-
-register()
+} from './determinism/index.js'
+import { WorkflowRecord } from './determinism/types.js'
 
 export class CheckWorkflowDeterminismCommand {
     private readonly maxWorkflowsPerType = 10
@@ -197,7 +195,7 @@ export class CheckWorkflowDeterminismCommand {
         workflowsPath: string,
         temporalConfig: TemporalConfig,
         specificWorkflowId?: string,
-    ): Promise<import('./determinism').DeterminismReport> {
+    ): Promise<import('./determinism/index.js').DeterminismReport> {
         const reportBuilder = new DeterminismReportBuilder()
 
         try {
@@ -226,7 +224,7 @@ export class CheckWorkflowDeterminismCommand {
 
             for (const [i, workflowId] of workflowIds.entries()) {
                 if (i > 0) {
-                    await new Promise((resolve) => setTimeout(resolve, this.delayBetweenWorkflows))
+                    await wait(this.delayBetweenWorkflows)
                 }
 
                 await this.checkSingleWorkflow(client, options, workflowId, reportBuilder)
@@ -317,14 +315,9 @@ export class CheckWorkflowDeterminismCommand {
             throw new Error(`Workflow files not found under provided path: ${fullWorkflowsPath}`)
         }
 
-        const module = await import(fullWorkflowsPath)
-        const workflows = module.default
+        const { default: _default, interceptors: _interceptors, ...workflows } = await import(fullWorkflowsPath)
 
-        if (workflows['interceptors']) {
-            delete workflows['interceptors']
-        }
-
-        return workflows
+        return workflows as WorkflowRecord
     }
 
     private async listCompletedOrFailedWorkflows(client: TemporalClient, workflowsPath: string): Promise<string[]> {

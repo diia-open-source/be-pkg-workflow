@@ -4,7 +4,7 @@ import { ReplayWorkerOptions } from '@temporalio/worker'
 
 import { EnvService } from '@diia-inhouse/env'
 
-import { getDataConverter } from '../../encryption'
+import { getDataConverter } from '../../encryption/index.js'
 
 export function resolveWorkflowsPath(workflowsPath: string): string {
     const baseDir = path.resolve('./dist')

@@ -3,11 +3,15 @@ import { describe, expect, it } from 'vitest'
 import type { QueueConnectionConfig } from '@diia-inhouse/diia-queue'
 
 import type { AppConfig } from '../../../src/interfaces/config'
-import { applyServiceProcessConfig, applyWorkerProcessConfig, bootstrapWorker, instantiateActivities } from '../../../src/services/worker'
+import {
+    applyServiceProcessConfig,
+    applyWorkerProcessConfig,
+    bootstrapWorker,
+    instantiateActivities,
+    toWorkflowsPath,
+} from '../../../src/services/worker'
 
 class TestActivity {
-    constructor() {}
-
     async activityMethod(): Promise<string> {
         return 'async result'
     }
@@ -18,8 +22,6 @@ class TestActivity {
 }
 
 class AnotherTestActivity {
-    constructor() {}
-
     async activityMethod(): Promise<number> {
         return 42
     }
@@ -73,13 +75,15 @@ describe('worker', () => {
                     serviceRulesConfig: {},
                     internal: { connection: { hostname: 'localhost' }, listenerOptions: {}, consumerEnabled: true },
                     external: { connection: { hostname: 'localhost' }, listenerOptions: {}, consumerEnabled: true },
-                } as QueueConnectionConfig,
+                } as unknown as QueueConnectionConfig,
             })
 
             applyWorkerProcessConfig(config)
 
-            expect(config.rabbit!.internal!.consumerEnabled).toBe(false)
-            expect(config.rabbit!.external!.consumerEnabled).toBe(false)
+            const rabbit = config.rabbit as unknown as Record<string, { consumerEnabled: boolean }>
+
+            expect(rabbit.internal.consumerEnabled).toBe(false)
+            expect(rabbit.external.consumerEnabled).toBe(false)
         })
 
         it('should not touch non-connection entries in rabbit config', () => {
@@ -87,7 +91,7 @@ describe('worker', () => {
                 rabbit: {
                     serviceRulesConfig: {},
                     internal: { connection: { hostname: 'localhost' }, listenerOptions: {}, consumerEnabled: true },
-                } as QueueConnectionConfig,
+                } as unknown as QueueConnectionConfig,
             })
 
             applyWorkerProcessConfig(config)
@@ -102,13 +106,15 @@ describe('worker', () => {
                     serviceRulesConfig: {},
                     internal: { connection: { hostname: 'localhost' }, listenerOptions: {}, consumerEnabled: true },
                     external: { connection: { hostname: 'localhost' }, listenerOptions: {}, consumerEnabled: true },
-                } as QueueConnectionConfig,
+                } as unknown as QueueConnectionConfig,
             })
 
             applyWorkerProcessConfig(config)
 
-            expect(config.rabbit!.internal!.consumerEnabled).toBe(true)
-            expect(config.rabbit!.external!.consumerEnabled).toBe(true)
+            const rabbit = config.rabbit as unknown as Record<string, { consumerEnabled: boolean }>
+
+            expect(rabbit.internal.consumerEnabled).toBe(true)
+            expect(rabbit.external.consumerEnabled).toBe(true)
         })
 
         it('should handle missing rabbit config gracefully', () => {
@@ -260,6 +266,16 @@ describe('worker', () => {
         })
     })
 
+    describe('toWorkflowsPath', () => {
+        it('returns an absolute filesystem path unchanged', () => {
+            expect(toWorkflowsPath('/abs/path/workflows/index.js')).toBe('/abs/path/workflows/index.js')
+        })
+
+        it('converts a file:// URL (as produced by import.meta.resolve) to a filesystem path', () => {
+            expect(toWorkflowsPath('file:///abs/path/workflows/index.js')).toBe('/abs/path/workflows/index.js')
+        })
+    })
+
     describe('prepareActivities', () => {
         it('should bind single activity instance methods', async () => {
             const activities = instantiateActivities(mockApp, { test: TestActivity })
@@ -298,8 +314,6 @@ describe('worker', () => {
             class ContextTestActivity {
                 private value = 'test value'
 
-                constructor() {}
-
                 getValue(): string {
                     return this.value
                 }
@@ -320,7 +334,7 @@ describe('worker', () => {
 
         it('should handle activity instance with no methods', () => {
             class EmptyActivity {
-                constructor() {}
+                readonly tag = 'empty'
             }
 
             const activities = instantiateActivities(mockApp, { test: EmptyActivity })

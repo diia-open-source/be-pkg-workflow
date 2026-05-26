@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
-import { HistoryEntry, WorkflowRecord } from './types'
+import { HistoryEntry, WorkflowRecord } from './types.js'
 
 const ENCRYPTED_ENCODING = 'YmluYXJ5L2VuY3J5cHRlZA==' // base64 of 'binary/encrypted'
 

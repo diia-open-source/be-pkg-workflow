@@ -3,7 +3,7 @@ import { DataConverter } from '@temporalio/common'
 import { EnvService } from '@diia-inhouse/env'
 import { DurationMs } from '@diia-inhouse/types'
 
-import { EncryptionCodec } from './encryptionCodec'
+import { EncryptionCodec } from './encryptionCodec.js'
 
 let dataConverterPromise: Promise<DataConverter>
 const defaultRefreshInterval = DurationMs.Day
@@ -24,7 +24,7 @@ async function createDataConverter(
     const vaultEnabled = EnvService.getVar('VAULT_ENABLED', 'boolean', false)
     const codec = await EncryptionCodec.create(keyId, envService, { vaultEnabled })
 
-    if (vaultEnabled && refreshInterval > 0) {
+    if (vaultEnabled && (refreshInterval as number) > 0) {
         setInterval(async () => {
             await codec?.refreshDefaultKey()
         }, refreshInterval)

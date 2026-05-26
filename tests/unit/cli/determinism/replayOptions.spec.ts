@@ -4,7 +4,7 @@ import { buildReplayOptions, resolveWorkflowsPath } from '../../../../src/cli/de
 import { getDataConverter } from '../../../../src/encryption'
 
 vi.mock('../../../../src/encryption', () => ({
-    getDataConverter: vi.fn(),
+    getDataConverter: vi.fn<typeof getDataConverter>(),
 }))
 
 const mockGetDataConverter = vi.mocked(getDataConverter)

@@ -1,7 +1,12 @@
 import { printReport } from '../../../../src/cli/determinism/reportPrinter'
 import { DeterminismReport } from '../../../../src/cli/determinism/types'
 
-function createWriter(): { write: (s: string) => void; output: string } {
+interface TestWriter {
+    write: (s: string) => void
+    output: string
+}
+
+function createWriter(): TestWriter {
     let output = ''
 
     return {
