@@ -19,7 +19,6 @@ import {
     WorkerInterceptors,
     WorkerOptions,
 } from '@temporalio/worker'
-import * as promClient from 'prom-client'
 
 import { EnvService } from '@diia-inhouse/env'
 import { HealthCheck } from '@diia-inhouse/healthcheck'
@@ -37,8 +36,6 @@ import type {
     NodeTracerProviderLike,
     WorkerBootstrapOptions,
 } from '../interfaces/services/worker.js'
-import { TemporalClient } from './client.js'
-import { SchedulesExporter } from './schedulesExporter.js'
 import { buildWorkerIdentity } from './worker/identity.js'
 import { WorkerHealthService } from './workerHealth.js'
 
@@ -270,13 +267,7 @@ export async function initTemporalWorker(
         asyncLocalStorage,
     )
 
-    const schedulesExporter = await startSchedulesExporter(app, config, logger)
-
-    try {
-        await worker.run()
-    } finally {
-        await schedulesExporter?.onDestroy().catch((err) => logger.error('SchedulesExporter shutdown failed', { err }))
-    }
+    await worker.run()
 }
 
 /**
@@ -365,8 +356,6 @@ export async function bootstrapWorker(app: App, options: WorkerBootstrapOptions)
         asyncLocalStorage,
     )
 
-    const schedulesExporter = await startSchedulesExporter(app, config, logger)
-
     logger.info('Starting Temporal worker', { taskQueue, identity })
 
     const healthCheck = tryResolve<HealthCheck>(app.container!, 'healthCheck')
@@ -391,8 +380,6 @@ export async function bootstrapWorker(app: App, options: WorkerBootstrapOptions)
         for (const signal of shutdownSignals) {
             process.off(signal, signalHandler)
         }
-
-        await schedulesExporter?.onDestroy().catch((err) => logger.error('SchedulesExporter shutdown failed', { err }))
     }
 }
 
@@ -402,31 +389,6 @@ function tryResolve<T>(container: NonNullable<App['container']>, key: string): T
     } catch {
         return undefined
     }
-}
-
-/**
- * Wires the SchedulesExporter to the in-process worker. Auto-enabled; opt out by setting
- * `config.temporal.schedulesExporter` to `false`. Returns the exporter so callers can stop
- * it on shutdown.
- */
-async function startSchedulesExporter(app: App, config: AppConfig, logger: Logger): Promise<SchedulesExporter | undefined> {
-    const exporterConfig = config.temporal.schedulesExporter
-    if (exporterConfig === false) {
-        return undefined
-    }
-
-    const temporalClient = tryResolve<TemporalClient>(app.container!, 'temporalClient')
-    if (!temporalClient) {
-        logger.warn('SchedulesExporter not started: temporalClient is not registered in the DI container')
-
-        return undefined
-    }
-
-    const exporter = new SchedulesExporter({ client: temporalClient, taskQueue: config.temporal.taskQueue, logger }, exporterConfig ?? {})
-
-    await exporter.onInit()
-
-    return exporter
 }
 
 /**
@@ -501,51 +463,10 @@ export async function initWorker(
             interceptors: mergedInterceptors,
         })
 
-        if (workflowsPath && taskQueue) {
-            await emitRegisteredWorkflowTypes(workflowsPath, taskQueue, logger)
-        }
-
         return worker
     } catch (err) {
         logger?.error('Failed to create Temporal worker', { err })
 
         throw new Error('Failed to create Temporal worker', { cause: err })
-    }
-}
-
-/**
- * Dynamic-imports the workflows entrypoint module and emits
- * `diia_workflow_registered_type_info{workflow_type, task_queue}=1` for every exported
- * function. Pairs with `diia_schedule_*` series so a dashboard can detect zombie schedules
- * (schedules whose workflow type is no longer registered on the same task queue).
- *
- * Failures are logged and swallowed — this is observability, not load-bearing.
- */
-async function emitRegisteredWorkflowTypes(workflowsPath: string, taskQueue: string, logger: Logger | undefined): Promise<void> {
-    try {
-        const url = workflowsPath.startsWith('file://') ? workflowsPath : `file://${workflowsPath}`
-        const mod = (await import(url)) as Record<string, unknown>
-
-        const existing = promClient.register.getSingleMetric('diia_workflow_registered_type_info')
-        const gauge =
-            existing instanceof promClient.Gauge
-                ? (existing as promClient.Gauge<'workflow_type' | 'task_queue'>)
-                : new promClient.Gauge<'workflow_type' | 'task_queue'>({
-                      name: 'diia_workflow_registered_type_info',
-                      help: '1 if the workflow type is registered on this task queue (function exported from the worker entrypoint module)',
-                      labelNames: ['workflow_type', 'task_queue'],
-                  })
-
-        const registered: string[] = []
-        for (const [name, value] of Object.entries(mod)) {
-            if (typeof value === 'function') {
-                gauge.set({ workflow_type: name, task_queue: taskQueue }, 1)
-                registered.push(name)
-            }
-        }
-
-        logger?.info('Registered workflow types emitted to Prometheus', { taskQueue, count: registered.length, types: registered })
-    } catch (err) {
-        logger?.warn('Failed to enumerate registered workflow types', { err })
     }
 }
