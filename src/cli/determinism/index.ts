@@ -1,4 +1,4 @@
-export { classifyReplayError, isNewStepsAdded } from './errorClassifier.js'
+export { classifyReplayError, isNewStepsAdded, isWorkflowNotFoundError } from './errorClassifier.js'
 
 export type { ErrorClassification } from './errorClassifier.js'
 

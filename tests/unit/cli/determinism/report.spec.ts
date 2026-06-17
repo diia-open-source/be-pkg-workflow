@@ -74,6 +74,21 @@ describe('DeterminismReportBuilder', () => {
         })
     })
 
+    describe('addSkipped', () => {
+        it('should increment skippedCount without affecting other counts or checkedWorkflows', () => {
+            builder.addSkipped()
+            builder.addSkipped()
+
+            const report = builder.build()
+
+            expect(report.skippedCount).toBe(2)
+            expect(report.successCount).toBe(0)
+            expect(report.failureCount).toBe(0)
+            expect(report.timeoutCount).toBe(0)
+            expect(report.checkedWorkflows).toEqual([])
+        })
+    })
+
     describe('addWarning', () => {
         it('should add warning without affecting counts', () => {
             const warning = {

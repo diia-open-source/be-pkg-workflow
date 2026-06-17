@@ -1,6 +1,17 @@
+import { WorkflowNotFoundError, isGrpcServiceError } from '@temporalio/client'
 import { DeterminismViolationError } from '@temporalio/workflow'
 
 import { WorkflowDeterminismError } from './types.js'
+
+const GRPC_STATUS_NOT_FOUND = 5
+
+export function isWorkflowNotFoundError(error: unknown): boolean {
+    if (error instanceof WorkflowNotFoundError) {
+        return true
+    }
+
+    return isGrpcServiceError(error) && (error.code as number) === GRPC_STATUS_NOT_FOUND
+}
 
 interface DeterminismViolationClassification {
     type: 'determinism-violation'

@@ -1,6 +1,7 @@
+import { WorkflowNotFoundError } from '@temporalio/client'
 import { DeterminismViolationError } from '@temporalio/workflow'
 
-import { classifyReplayError, isNewStepsAdded } from '../../../../src/cli/determinism/errorClassifier'
+import { classifyReplayError, isNewStepsAdded, isWorkflowNotFoundError } from '../../../../src/cli/determinism/errorClassifier'
 
 describe('isNewStepsAdded', () => {
     it('should return true for DeterminismViolation with WorkflowExecutionCompleted', () => {
@@ -31,6 +32,43 @@ describe('isNewStepsAdded', () => {
                 errorMessage: 'WorkflowExecutionCompleted',
             }),
         ).toBe(false)
+    })
+})
+
+describe('isWorkflowNotFoundError', () => {
+    it('should return true for a WorkflowNotFoundError', () => {
+        const error = new WorkflowNotFoundError('workflow not found', 'wf-1', undefined)
+
+        expect(isWorkflowNotFoundError(error)).toBe(true)
+    })
+
+    it('should return true for a raw gRPC NOT_FOUND service error', () => {
+        const error = Object.assign(new Error('5 NOT_FOUND: workflow not found for ID: wf-1'), {
+            code: 5,
+            details: 'workflow not found for ID: wf-1',
+            metadata: {},
+        })
+
+        expect(isWorkflowNotFoundError(error)).toBe(true)
+    })
+
+    it('should return false for a gRPC error with a different status code', () => {
+        const error = Object.assign(new Error('14 UNAVAILABLE'), {
+            code: 14,
+            details: 'unavailable',
+            metadata: {},
+        })
+
+        expect(isWorkflowNotFoundError(error)).toBe(false)
+    })
+
+    it('should return false for a plain error', () => {
+        expect(isWorkflowNotFoundError(new Error('something else'))).toBe(false)
+    })
+
+    it('should return false for non-error values', () => {
+        expect(isWorkflowNotFoundError(undefined)).toBe(false)
+        expect(isWorkflowNotFoundError('not found')).toBe(false)
     })
 })
 

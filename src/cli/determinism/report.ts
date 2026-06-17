@@ -30,6 +30,10 @@ export class DeterminismReportBuilder {
         this.skippedCount = count
     }
 
+    addSkipped(): void {
+        this.skippedCount++
+    }
+
     addWarning(warning: WorkflowDeterminismError): void {
         this.warnings.push(warning)
     }

@@ -14,6 +14,7 @@ import {
     DeterminismReportBuilder,
     buildReplayOptions,
     isNewStepsAdded,
+    isWorkflowNotFoundError,
     loadHistoryEntries,
     printReport,
     replayBatch,
@@ -21,6 +22,8 @@ import {
     resolveWorkflowsPath,
 } from './determinism/index.js'
 import { WorkflowRecord } from './determinism/types.js'
+
+type WorkflowHistory = Awaited<ReturnType<ReturnType<TemporalClient['workflow']['getHandle']>['fetchHistory']>>
 
 export class CheckWorkflowDeterminismCommand {
     private readonly maxWorkflowsPerType = 10
@@ -245,10 +248,15 @@ export class CheckWorkflowDeterminismCommand {
     ): Promise<void> {
         this.logger.info(`Checking workflow ${workflowId}`)
 
-        const handle = client.workflow.getHandle(workflowId)
-        const history = await handle.fetchHistory()
-        const description = await handle.describe()
-        const workflowName = description.type
+        const fetched = await this.fetchWorkflowHistory(client, workflowId)
+        if (!fetched) {
+            reportBuilder.addSkipped()
+            this.logger.warn(`⚠️ Workflow ${workflowId} no longer exists on the server (likely deleted after retention) — skipping`)
+
+            return
+        }
+
+        const { history, workflowName } = fetched
 
         const outcome = await replaySingle(options, history, workflowId, workflowName, {
             maxRetries: this.maxRetries,
@@ -303,6 +311,26 @@ export class CheckWorkflowDeterminismCommand {
                 this.logger.warn(`⏰ Workflow ${workflowId} timed out after ${outcome.timeoutMs / 1000}s — skipping`)
                 break
             }
+        }
+    }
+
+    private async fetchWorkflowHistory(
+        client: TemporalClient,
+        workflowId: string,
+    ): Promise<{ history: WorkflowHistory; workflowName: string } | undefined> {
+        const handle = client.workflow.getHandle(workflowId)
+
+        try {
+            const history = await handle.fetchHistory()
+            const description = await handle.describe()
+
+            return { history, workflowName: description.type }
+        } catch (err) {
+            if (isWorkflowNotFoundError(err)) {
+                return undefined
+            }
+
+            throw err
         }
     }
 
