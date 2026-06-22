@@ -43,6 +43,15 @@ export interface WorkerBootstrapOptions extends Omit<WorkerOptions, 'taskQueue' 
     nodeTracerProvider?: NodeTracerProviderLike
     shutdownSignals?: NodeJS.Signals[]
     /**
+     * The workflows this worker runs. Recorded on the `diia_temporal_worker_info` metric.
+     *
+     * Optional — left empty, the workflows are picked up automatically from the workflows folder, so
+     * most services don't need to set this. Pass it only to override that.
+     */
+    workflowTypes?: string[]
+    /** Service name for the metric. Defaults to the name derived from the task queue. */
+    service?: string
+    /**
      * When provided together with `deps`, `bootstrapWorker` manages the full application
      * lifecycle: setConfig → apply worker overrides → setDeps → initialize → start → run worker.
      */

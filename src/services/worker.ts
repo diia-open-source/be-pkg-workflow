@@ -37,6 +37,7 @@ import type {
     WorkerBootstrapOptions,
 } from '../interfaces/services/worker.js'
 import { buildWorkerIdentity } from './worker/identity.js'
+import { deriveWorkflowTypes, registerWorkerInfo } from './worker/info.js'
 import { WorkerHealthService } from './workerHealth.js'
 
 export type { ActivityClass, App, State, WorkerBootstrapOptions } from '../interfaces/services/worker.js'
@@ -246,6 +247,10 @@ export async function initTemporalWorker(
         nodeTracerProvider: NodeTracerProviderLike
         workflowsPath: string
         activities: Record<string, ActivityClass>
+        /** The workflows this worker runs. Auto-detected from the workflows folder when left empty. */
+        workflowTypes?: string[]
+        /** Service name. Defaults to the name derived from the task queue. */
+        service?: string
     } & Omit<WorkerOptions, 'taskQueue' | 'activities' | 'workflowsPath'>,
 ): Promise<void> {
     const config = app.getConfig?.() as AppConfig
@@ -404,7 +409,13 @@ function tryResolve<T>(container: NonNullable<App['container']>, key: string): T
  */
 export async function initWorker(
     { temporal: temporalConfig, metrics: { custom: metricsConfig } }: AppConfig,
-    options: Omit<WorkerOptions, 'taskQueue'> & { taskQueue?: string },
+    options: Omit<WorkerOptions, 'taskQueue'> & {
+        taskQueue?: string
+        /** The workflows this worker runs. Auto-detected from the workflows folder when left empty. */
+        workflowTypes?: string[]
+        /** Service name. Defaults to the name derived from the task queue. */
+        service?: string
+    },
     envService: EnvService,
     logger?: Logger,
     nodeTracerProvider?: NodeTracerProviderLike,
@@ -449,6 +460,8 @@ export async function initWorker(
     const builtInInterceptors = buildWorkerInterceptors(tracingEnabled, asyncLocalStorage, logger, workflowsPath)
     const mergedInterceptors = mergeInterceptors(builtInInterceptors, options.interceptors)
 
+    const { workflowTypes, service: serviceOverride, ...workerCreateOptions } = options
+
     try {
         const worker = await Worker.create({
             namespace,
@@ -457,11 +470,22 @@ export async function initWorker(
             dataConverter: encryptionEnabled
                 ? await getDataConverter(encryptionKeyId, envService, encryptionKeyRefreshInterval)
                 : undefined,
-            ...options,
+            ...workerCreateOptions,
             workflowsPath,
             sinks: tracingEnabled ? { exporter: makeWorkflowExporter(traceExporter, resource) } : undefined,
             interceptors: mergedInterceptors,
         })
+
+        if (taskQueue) {
+            try {
+                const resolvedWorkflowTypes =
+                    workflowTypes ?? (workflowsPath ? await deriveWorkflowTypes(workflowsPath, logger) : undefined)
+
+                registerWorkerInfo({ namespace, taskQueue, service: serviceOverride, workflowTypes: resolvedWorkflowTypes })
+            } catch (err) {
+                logger?.warn('Failed to record diia_temporal_worker_info metric', { err })
+            }
+        }
 
         return worker
     } catch (err) {
