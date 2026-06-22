@@ -24,6 +24,9 @@ export class TemporalClient implements OnInit {
 
     private readonly defaultTimezone = 'Europe/Kyiv'
 
+    /** Default maximum gRPC message size (in bytes) the client may receive. */
+    private readonly defaultMaxReceiveMessageLength = 128 * 1024 * 1024
+
     constructor(
         private readonly config: TemporalConfig,
         private readonly envService: EnvService,
@@ -51,10 +54,26 @@ export class TemporalClient implements OnInit {
     }
 
     async onInit(): Promise<void> {
-        const { address, tls, connectTimeout, encryptionEnabled, encryptionKeyId, encryptionKeyRefreshInterval, ...clientConfig } =
-            this.config
+        const {
+            address,
+            tls,
+            connectTimeout,
+            channelArgs,
+            encryptionEnabled,
+            encryptionKeyId,
+            encryptionKeyRefreshInterval,
+            ...clientConfig
+        } = this.config
 
-        const connection = await Connection.connect({ address, tls, connectTimeout }).catch((err) => {
+        const connection = await Connection.connect({
+            address,
+            tls,
+            connectTimeout,
+            channelArgs: {
+                'grpc.max_receive_message_length': this.defaultMaxReceiveMessageLength,
+                ...channelArgs,
+            },
+        }).catch((err) => {
             this.logger.error('Failed to connect to Temporal', { err })
 
             throw new Error('Failed to connect to Temporal', { cause: err })

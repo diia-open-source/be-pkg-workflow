@@ -12,6 +12,11 @@ export interface TemporalConfig extends Omit<ClientOptions, 'dataConverter'> {
     tls?: ConnectionOptions['tls']
     connectTimeout?: ConnectionOptions['connectTimeout']
     /**
+     * gRPC channel arguments forwarded to the Temporal connection
+     * (e.g. `'grpc.max_receive_message_length'`). Merged over the package defaults.
+     */
+    channelArgs?: ConnectionOptions['channelArgs']
+    /**
      * Controls whether the Temporal worker runs in the same process as the service.
      *
      * - `true` (default): Worker is bootstrapped together with the service in the same process.
