@@ -1,6 +1,6 @@
 {
     "name": "@diia-inhouse/workflow",
-    "version": "2.9.1",
+    "version": "2.9.2",
     "description": "Workflow",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -107,7 +107,7 @@
         "@diia-inhouse/healthcheck": "2.1.35",
         "@diia-inhouse/oxc-config": "1.11.0",
         "@diia-inhouse/test": "8.2.12",
-        "@diia-inhouse/types": "13.3.0",
+        "@diia-inhouse/types": "14.0.0",
         "@diia-inhouse/utils": "6.0.29",
         "@types/lodash": "4.17.24",
         "@types/node": "25.6.2",
