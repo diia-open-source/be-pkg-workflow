@@ -20,6 +20,7 @@ import {
     WorkerOptions,
 } from '@temporalio/worker'
 
+import { QueueConnectionType } from '@diia-inhouse/diia-queue'
 import { EnvService } from '@diia-inhouse/env'
 import { HealthCheck } from '@diia-inhouse/healthcheck'
 import { AlsData, Logger } from '@diia-inhouse/types'
@@ -72,7 +73,7 @@ export function applyServiceProcessConfig(config: AppConfig): void {
 /**
  * Applies worker process configuration overrides.
  *
- * - Disables queue consumers on all rabbit connections (unless `temporal.disableQueueConsumers` is `false`)
+ * - Disables queue consumers on the internal and external rabbit connections (unless `temporal.disableQueueConsumers` is `false`)
  * - Overrides `metrics.custom.port` with the `'temporal-worker'` scraper port and disables that scraper to prevent self-scraping
  *
  * Mutates the config object in place. Safe to call when queue config is absent.
@@ -81,9 +82,10 @@ export function applyWorkerProcessConfig(config: AppConfig): void {
     const { disableQueueConsumers = true } = config.temporal
 
     if (disableQueueConsumers && config.rabbit) {
-        for (const value of Object.values(config.rabbit)) {
-            if (value && typeof value === 'object' && 'consumerEnabled' in value) {
-                value.consumerEnabled = false
+        for (const connectionType of [QueueConnectionType.Internal, QueueConnectionType.External]) {
+            const connectionConfig = config.rabbit[connectionType]
+            if (connectionConfig) {
+                connectionConfig.consumerEnabled = false
             }
         }
     }
