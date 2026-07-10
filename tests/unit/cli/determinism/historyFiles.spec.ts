@@ -184,7 +184,7 @@ describe('loadHistoryEntries', () => {
         mockReadFileSync.mockReturnValueOnce(makeHistoryJson('WF')).mockReturnValueOnce('invalid json')
 
         const logger = { warn: vi.fn<(...args: unknown[]) => void>() }
-        const result = loadHistoryEntries('/dir', { WF: vi.fn<() => void>() }, { logger: logger as never })
+        const result = loadHistoryEntries('/dir', { WF: vi.fn<() => void>() }, { logger: logger })
 
         expect(result.entries).toHaveLength(1)
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('bad'))

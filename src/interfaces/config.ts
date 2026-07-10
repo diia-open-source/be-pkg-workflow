@@ -20,8 +20,8 @@ export interface TemporalConfig extends Omit<ClientOptions, 'dataConverter'> {
      * Controls whether the Temporal worker runs in the same process as the service.
      *
      * - `true` (default): Worker is bootstrapped together with the service in the same process.
-     * - `false`: Service starts without bootstrapping the worker. The worker should be run
-     *   as a separate process using `bootstrapWorker()`.
+     * - `false`: Service starts without running the worker in-process. The worker should be run
+     *   as a separate process using `runStandaloneWorker()`.
      *
      * This is configured at the service level to enable flexible deployment topologies
      * where workers can be scaled independently from the main service.
@@ -31,8 +31,8 @@ export interface TemporalConfig extends Omit<ClientOptions, 'dataConverter'> {
      * Whether to disable message queue consumers when running as a separate worker process.
      * Applies to all queue connection types (internal, external, etc.).
      *
-     * Defaults to `true` when `bootstrapWorker` manages the full application lifecycle
-     * (i.e. when `configFactory` and `deps` are provided).
+     * Defaults to `true`. Applied by `runStandaloneWorker` (the dedicated worker process)
+     * when it shapes config before starting the app.
      */
     disableQueueConsumers?: boolean
 }

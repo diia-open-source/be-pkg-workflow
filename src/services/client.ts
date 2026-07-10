@@ -53,6 +53,14 @@ export class TemporalClient implements OnInit {
         return this.nativeClient.taskQueue
     }
 
+    /**
+     * Client for starting and managing Standalone Activities (run directly from a client,
+     * without a workflow). Mirrors `nativeClient.activity`.
+     */
+    get activity(): Client['activity'] {
+        return this.nativeClient.activity
+    }
+
     async onInit(): Promise<void> {
         const {
             address,

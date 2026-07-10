@@ -33,7 +33,10 @@ export type BoundActivities<T extends ActivityInstance> = {
 
 export type ActivityClass = new (...args: any[]) => any
 
-export interface WorkerBootstrapOptions extends Omit<WorkerOptions, 'taskQueue' | 'activities' | 'workflowsPath'> {
+/**
+ * Options shared by both worker entry points (`runStandaloneWorker` and `runInProcessWorker`).
+ */
+export interface WorkerRunOptions extends Omit<WorkerOptions, 'taskQueue' | 'activities' | 'workflowsPath'> {
     /**
      * Path to the workflows module. Accepts either an absolute filesystem path
      * or a `file://` URL (e.g. from `import.meta.resolve('./worker/workflows/index.js')`).
@@ -51,14 +54,38 @@ export interface WorkerBootstrapOptions extends Omit<WorkerOptions, 'taskQueue' 
     workflowTypes?: string[]
     /** Service name for the metric. Defaults to the name derived from the task queue. */
     service?: string
+}
+
+/**
+ * Options for `runInProcessWorker` — attaches the worker to an already-started service
+ * process. The service owns the application lifecycle; this only runs the worker (and
+ * only when `temporal.workerInProcess` is not `false`).
+ */
+export type RunInProcessWorkerOptions = WorkerRunOptions
+
+/**
+ * Options for `runStandaloneWorker` — the dedicated worker process. It owns the full
+ * application lifecycle, so `configFactory` and `deps` are required.
+ */
+export interface RunStandaloneWorkerOptions extends WorkerRunOptions {
     /**
-     * When provided together with `deps`, `bootstrapWorker` manages the full application
-     * lifecycle: setConfig → apply worker overrides → setDeps → initialize → start → run worker.
+     * Config factory passed to `app.setConfig()`. `runStandaloneWorker` manages the full
+     * application lifecycle: setConfig → apply worker overrides → setDeps → initialize → start → run worker.
      */
+    configFactory: (...args: any[]) => Promise<any>
+    /** Dependency factory passed to `app.setDeps()`. */
+    deps: (...args: any[]) => Promise<any>
+}
+
+/**
+ * @deprecated Use {@link RunStandaloneWorkerOptions} (dedicated worker process) or
+ * {@link RunInProcessWorkerOptions} (in-process, main service). Options for the deprecated
+ * {@link WorkerBootstrapOptions | bootstrapWorker} — `configFactory`/`deps` are optional here
+ * only to preserve its legacy behaviour of switching roles by which options are present.
+ */
+export interface WorkerBootstrapOptions extends WorkerRunOptions {
+    /** When provided together with `deps`, behaves like `runStandaloneWorker`; otherwise like `runInProcessWorker`. */
     configFactory?: (...args: any[]) => Promise<any>
-    /**
-     * Dependency factory passed to `app.setDeps()`. Required when `configFactory` is provided.
-     */
     deps?: (...args: any[]) => Promise<any>
 }
 

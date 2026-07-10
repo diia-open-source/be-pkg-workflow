@@ -35,13 +35,24 @@ import type {
     App,
     BoundActivities,
     NodeTracerProviderLike,
+    RunInProcessWorkerOptions,
+    RunStandaloneWorkerOptions,
     WorkerBootstrapOptions,
+    WorkerRunOptions,
 } from '../interfaces/services/worker.js'
 import { buildWorkerIdentity } from './worker/identity.js'
 import { deriveWorkflowTypes, registerWorkerInfo } from './worker/info.js'
 import { WorkerHealthService } from './workerHealth.js'
 
-export type { ActivityClass, App, State, WorkerBootstrapOptions } from '../interfaces/services/worker.js'
+export type {
+    ActivityClass,
+    App,
+    RunInProcessWorkerOptions,
+    RunStandaloneWorkerOptions,
+    State,
+    WorkerBootstrapOptions,
+    WorkerRunOptions,
+} from '../interfaces/services/worker.js'
 
 export type { WorkerHealthDetails } from './workerHealth.js'
 
@@ -213,94 +224,27 @@ export function instantiateActivities(
 }
 
 /**
- * Initializes and starts Temporal worker with full dependency injection support.
+ * Runs the Temporal worker in the **dedicated worker process**.
  *
- * This is the recommended way to initialize Temporal workers. It handles:
- * - Automatic dependency injection for activities
- * - AsyncLocalStorage setup for distributed tracing
- * - OpenTelemetry integration
- * - Activity instantiation and binding
+ * This entry point owns the full application lifecycle — it is meant to be the only
+ * call in a standalone worker entry file (e.g. `workerEntry.ts`):
  *
- * @param app - App instance for DI container and config access
- * @param options - Worker configuration options
- * @param options.nodeTracerProvider - OpenTelemetry tracer provider
- * @param options.workflowsPath - Path to workflows module
- * @param options.activities - Activity classes to instantiate
+ *   setConfig → apply worker overrides → setDeps → initialize → start → run worker
  *
- * @example
- * ```typescript
- * // Define your activities
- * const workerActivities = {
- *     userActivity: UserActivity,
- *     notificationActivity: NotificationActivity,
- * }
+ * A worker process always runs a worker, so `workerInProcess` is not consulted here.
+ * Applies the worker-process config overrides (disables queue consumers, moves metrics
+ * to the `temporal-worker` scraper port) before the app starts, and integrates worker
+ * health with the app's centralized health check.
  *
- * // Initialize and start the worker
- * await initTemporalWorker(app, {
- *     nodeTracerProvider,
- *     workflowsPath: import.meta.resolve('./worker/workflows/index.js'),
- *     activities: workerActivities,
- * })
- * ```
- */
-export async function initTemporalWorker(
-    app: App,
-    options: {
-        nodeTracerProvider: NodeTracerProviderLike
-        workflowsPath: string
-        activities: Record<string, ActivityClass>
-        /** The workflows this worker runs. Auto-detected from the workflows folder when left empty. */
-        workflowTypes?: string[]
-        /** Service name. Defaults to the name derived from the task queue. */
-        service?: string
-    } & Omit<WorkerOptions, 'taskQueue' | 'activities' | 'workflowsPath'>,
-): Promise<void> {
-    const config = app.getConfig?.() as AppConfig
-    const { nodeTracerProvider, workflowsPath: workflowsPathInput, activities, ...workerOptions } = options
-    const workflowsPath = toWorkflowsPath(workflowsPathInput)
-
-    const envService = app.container!.resolve<EnvService>('envService')
-    const logger = app.container!.resolve<Logger>('logger')
-    const asyncLocalStorage = app.container!.resolve<AsyncLocalStorage<AlsData>>('asyncLocalStorage')
-
-    const instantiatedActivities = instantiateActivities(app, activities)
-
-    const worker = await initWorker(
-        config,
-        { ...workerOptions, workflowsPath, activities: instantiatedActivities },
-        envService,
-        logger,
-        nodeTracerProvider,
-        asyncLocalStorage,
-    )
-
-    await worker.run()
-}
-
-/**
- * Bootstraps and runs Temporal worker with graceful shutdown.
- *
- * Handles both in-process and separate-process worker topologies:
- *
- * - **In-process** (`workerInProcess` is `true` or unset): initializes and runs the worker.
- * - **Separate process** (called from a dedicated worker entry with `configFactory`/`deps`):
- *   manages the full application lifecycle: setConfig → apply worker overrides → setDeps →
- *   initialize → start → run worker.
- * - **Service-only** (`workerInProcess` is `false`, no `configFactory`): disables temporal
- *   scrapers on the main service (worker handles them separately) and returns immediately.
- *
- * Automatically integrates worker health with the app's centralized health check
- * system via `HealthCheck.addHealthCheckable()`.
- *
- * @param app - App instance for DI container and config access
- * @param options - Worker bootstrap options
+ * @param app - App instance (config is set here, so it must be un-initialized)
+ * @param options - Worker process options; `configFactory` and `deps` are required
  *
  * @example
  * ```typescript
- * // Separate worker process with full lifecycle management
+ * // workerEntry.ts — the standalone worker process
  * const app = new Application(serviceName, nodeTracerProvider, loggerConfig)
  *
- * await bootstrapWorker(app, {
+ * await runStandaloneWorker(app, {
  *     configFactory,
  *     deps,
  *     workflowsPath: import.meta.resolve('./worker/workflows/index.js'),
@@ -309,10 +253,98 @@ export async function initTemporalWorker(
  * })
  * ```
  */
+export async function runStandaloneWorker(app: App, options: RunStandaloneWorkerOptions): Promise<void> {
+    const { configFactory, deps, ...runOptions } = options
+
+    await app.setConfig!(configFactory)
+
+    applyWorkerProcessConfig(app.getConfig!() as AppConfig)
+
+    await app.setDeps!(deps)
+    const appOperator = await app.initialize!()
+
+    await appOperator.start()
+
+    await runWorker(app, runOptions)
+}
+
+/**
+ * Runs the Temporal worker **in the main service process**, alongside an app that the
+ * caller has already initialized and started.
+ *
+ * Behaviour is driven solely by `temporal.workerInProcess`:
+ *
+ * - not `false` (default): builds and runs the worker in this process (blocks until shutdown).
+ * - `false`: the worker runs elsewhere (see {@link runStandaloneWorker}); disables the temporal
+ *   scrapers on this service and returns immediately.
+ *
+ * Call it after `initialized.start()`.
+ *
+ * @param app - App instance for DI container and config access
+ * @param options - In-process worker options
+ *
+ * @example
+ * ```typescript
+ * // bootstrap.ts — the main service process
+ * await app.setConfig(configFactory)
+ * await app.setDeps(deps)
+ * const initialized = await app.initialize()
+ * await initialized.start()
+ *
+ * await runInProcessWorker(app, {
+ *     workflowsPath: import.meta.resolve('./worker/workflows/index.js'),
+ *     activities: workerActivities,
+ *     nodeTracerProvider,
+ * })
+ * ```
+ */
+export async function runInProcessWorker(app: App, options: RunInProcessWorkerOptions): Promise<void> {
+    const config = app.getConfig?.() as AppConfig
+
+    if (config.temporal.workerInProcess === false) {
+        applyServiceProcessConfig(config)
+
+        return
+    }
+
+    await runWorker(app, options)
+}
+
+/**
+ * @deprecated Split into two role-specific entry points — migrate to one of:
+ *
+ * - {@link runStandaloneWorker} — the dedicated worker process (was `bootstrapWorker(app, { configFactory, deps, ... })`).
+ * - {@link runInProcessWorker} — the worker running inside the already-started main service
+ *   (was `bootstrapWorker(app, { ... })` without `configFactory`/`deps`).
+ *
+ * This shim just forwards to those based on whether `configFactory` and `deps` are present, so
+ * existing call sites keep working. It multiplexes both roles by inspecting which options were
+ * passed — the exact ambiguity the split removes — and will be dropped in a future major.
+ *
+ * @param app - App instance for DI container and config access
+ * @param options - Legacy worker bootstrap options
+ */
 export async function bootstrapWorker(app: App, options: WorkerBootstrapOptions): Promise<void> {
+    const { configFactory, deps, ...runOptions } = options
+
+    if (configFactory && deps) {
+        await runStandaloneWorker(app, { ...runOptions, configFactory, deps })
+
+        return
+    }
+
+    await runInProcessWorker(app, runOptions)
+}
+
+/**
+ * Shared worker startup used by both {@link runStandaloneWorker} and {@link runInProcessWorker}.
+ *
+ * Assumes the app is already initialized and started. Instantiates activities from the DI
+ * container, creates the worker, registers its health check, installs graceful-shutdown
+ * signal handlers, and runs it until shutdown.
+ */
+async function runWorker(app: App, options: WorkerRunOptions): Promise<void> {
     const {
-        configFactory,
-        deps,
         workflowsPath: workflowsPathInput,
         activities,
         nodeTracerProvider,
@@ -321,24 +353,7 @@ export async function bootstrapWorker(app: App, options: WorkerBootstrapOptions)
     } = options
     const workflowsPath = toWorkflowsPath(workflowsPathInput)
 
-    if (configFactory && deps) {
-        await app.setConfig!(configFactory)
-
-        applyWorkerProcessConfig(app.getConfig!() as AppConfig)
-
-        await app.setDeps!(deps)
-        const appOperator = await app.initialize!()
-
-        await appOperator.start()
-    }
-
     const config = app.getConfig?.() as AppConfig
-
-    if (!configFactory && config.temporal.workerInProcess === false) {
-        applyServiceProcessConfig(config)
-
-        return
-    }
 
     const envService = app.container!.resolve<EnvService>('envService')
     const logger = app.container!.resolve<Logger>('logger')

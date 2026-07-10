@@ -8,6 +8,7 @@ import {
     applyWorkerProcessConfig,
     bootstrapWorker,
     instantiateActivities,
+    runInProcessWorker,
     toWorkflowsPath,
 } from '../../../src/services/worker'
 
@@ -237,8 +238,37 @@ describe('worker', () => {
         })
     })
 
-    describe('bootstrapWorker', () => {
+    describe('runInProcessWorker', () => {
         it('should disable temporal scrapers and return when workerInProcess is false', async () => {
+            const config = buildConfig({
+                scrapers: [
+                    { name: 'temporal', port: 3032 },
+                    { name: 'temporal-worker', port: 3033 },
+                ],
+            })
+
+            config.temporal.workerInProcess = false
+
+            const app = {
+                ...mockApp,
+                getConfig: (): AppConfig => config,
+            }
+
+            await runInProcessWorker(app, {
+                workflowsPath: '/fake/path',
+                activities: {},
+            })
+
+            const temporalScraper = config.metrics.custom.scrapers!.find((s) => s.name === 'temporal')
+            const workerScraper = config.metrics.custom.scrapers!.find((s) => s.name === 'temporal-worker')
+
+            expect(temporalScraper!.disabled).toBe(true)
+            expect(workerScraper!.disabled).toBe(true)
+        })
+    })
+
+    describe('bootstrapWorker (deprecated shim)', () => {
+        it('should delegate to runInProcessWorker when configFactory/deps are absent', async () => {
             const config = buildConfig({
                 scrapers: [
                     { name: 'temporal', port: 3032 },

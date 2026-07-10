@@ -10,7 +10,8 @@ export function isWorkflowNotFoundError(error: unknown): boolean {
         return true
     }
 
-    return isGrpcServiceError(error) && (error.code as number) === GRPC_STATUS_NOT_FOUND
+    // oxlint-disable-next-line typescript/no-unsafe-enum-comparison
+    return isGrpcServiceError(error) && error.code === GRPC_STATUS_NOT_FOUND
 }
 
 interface DeterminismViolationClassification {

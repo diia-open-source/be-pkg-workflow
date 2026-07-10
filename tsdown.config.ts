@@ -9,6 +9,7 @@ export default defineConfig({
         'src/operations.ts',
         'src/worker.ts',
         'src/testing.ts',
+        'src/nexus.ts',
         // Loaded at runtime by services/worker.ts via path.resolve, not as a static import,
         // so tsdown won't pick it up unless it's an explicit entry.
         'src/interceptors/traceLogAttributes.ts',

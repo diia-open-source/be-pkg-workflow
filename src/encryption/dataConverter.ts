@@ -19,12 +19,12 @@ export async function getDataConverter(keyId: string, envService: EnvService, re
 async function createDataConverter(
     keyId: string,
     envService: EnvService,
-    refreshInterval = defaultRefreshInterval,
+    refreshInterval: number = defaultRefreshInterval,
 ): Promise<DataConverter> {
     const vaultEnabled = EnvService.getVar('VAULT_ENABLED', 'boolean', false)
     const codec = await EncryptionCodec.create(keyId, envService, { vaultEnabled })
 
-    if (vaultEnabled && (refreshInterval as number) > 0) {
+    if (vaultEnabled && refreshInterval > 0) {
         setInterval(async () => {
             await codec?.refreshDefaultKey()
         }, refreshInterval)

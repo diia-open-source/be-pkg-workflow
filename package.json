@@ -1,6 +1,6 @@
 {
     "name": "@diia-inhouse/workflow",
-    "version": "2.9.13",
+    "version": "2.10.0",
     "description": "Workflow",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -17,37 +17,42 @@
     },
     "exports": {
         ".": {
-            "types": "./dist/types/index.d.ts",
+            "types": "./dist/index.d.ts",
             "import": "./dist/index.js",
             "require": "./dist/index.js"
         },
         "./activity": {
-            "types": "./dist/types/activity.d.ts",
+            "types": "./dist/activity.d.ts",
             "import": "./dist/activity.js",
             "require": "./dist/activity.js"
         },
         "./client": {
-            "types": "./dist/types/client.d.ts",
+            "types": "./dist/client.d.ts",
             "import": "./dist/client.js",
             "require": "./dist/client.js"
         },
         "./common": {
-            "types": "./dist/types/common.d.ts",
+            "types": "./dist/common.d.ts",
             "import": "./dist/common.js",
             "require": "./dist/common.js"
         },
         "./operations": {
-            "types": "./dist/types/operations.d.ts",
+            "types": "./dist/operations.d.ts",
             "import": "./dist/operations.js",
             "require": "./dist/operations.js"
         },
         "./worker": {
-            "types": "./dist/types/worker.d.ts",
+            "types": "./dist/worker.d.ts",
             "import": "./dist/worker.js",
             "require": "./dist/worker.js"
         },
+        "./nexus": {
+            "types": "./dist/nexus.d.ts",
+            "import": "./dist/nexus.js",
+            "require": "./dist/nexus.js"
+        },
         "./testing": {
-            "types": "./dist/types/testing.d.ts",
+            "types": "./dist/testing.d.ts",
             "import": "./dist/testing.js",
             "require": "./dist/testing.js"
         }
@@ -70,15 +75,17 @@
         "@opentelemetry/resources": "1.30.1",
         "@opentelemetry/sdk-trace-node": "1.30.1",
         "@opentelemetry/semantic-conventions": "1.40.0",
-        "@temporalio/activity": "1.12.1",
-        "@temporalio/client": "1.12.1",
-        "@temporalio/common": "1.12.1",
-        "@temporalio/interceptors-opentelemetry": "1.12.1",
-        "@temporalio/proto": "1.12.1",
-        "@temporalio/testing": "1.12.1",
-        "@temporalio/worker": "1.12.1",
-        "@temporalio/workflow": "1.12.1",
+        "@temporalio/activity": "1.20.2",
+        "@temporalio/client": "1.20.2",
+        "@temporalio/common": "1.20.2",
+        "@temporalio/interceptors-opentelemetry": "1.20.2",
+        "@temporalio/nexus": "1.20.2",
+        "@temporalio/proto": "1.20.2",
+        "@temporalio/testing": "1.20.2",
+        "@temporalio/worker": "1.20.2",
+        "@temporalio/workflow": "1.20.2",
         "lodash": "4.18.1",
+        "nexus-rpc": "0.0.2",
         "yargs": "18.0.0"
     },
     "peerDependencies": {
@@ -100,31 +107,31 @@
     },
     "devDependencies": {
         "@diia-inhouse/configs": "7.0.1",
-        "@diia-inhouse/diia-logger": "4.4.8",
-        "@diia-inhouse/diia-metrics": "7.1.46",
-        "@diia-inhouse/diia-queue": "14.1.3",
-        "@diia-inhouse/env": "3.3.29",
-        "@diia-inhouse/healthcheck": "2.1.53",
-        "@diia-inhouse/oxc-config": "1.11.0",
-        "@diia-inhouse/test": "8.2.17",
-        "@diia-inhouse/types": "14.1.1",
-        "@diia-inhouse/utils": "6.0.43",
+        "@diia-inhouse/diia-logger": "4.4.14",
+        "@diia-inhouse/diia-metrics": "7.1.53",
+        "@diia-inhouse/diia-queue": "14.1.4",
+        "@diia-inhouse/env": "3.3.31",
+        "@diia-inhouse/healthcheck": "2.1.60",
+        "@diia-inhouse/oxc-config": "2.0.0",
+        "@diia-inhouse/test": "8.2.19",
+        "@diia-inhouse/types": "14.2.0",
+        "@diia-inhouse/utils": "6.0.49",
         "@types/lodash": "4.17.24",
-        "@types/node": "25.6.2",
+        "@types/node": "26.1.0",
         "@types/yargs": "17.0.35",
-        "@vitest/coverage-v8": "4.1.5",
-        "@vitest/ui": "4.1.5",
+        "@vitest/coverage-v8": "4.1.9",
+        "@vitest/ui": "4.1.9",
         "glob": "13.0.6",
         "lockfile-lint": "5.0.0",
         "madge": "8.0.0",
-        "oxfmt": "0.48.0",
-        "oxlint": "1.63.0",
-        "oxlint-tsgolint": "0.22.1",
+        "oxfmt": "0.57.0",
+        "oxlint": "1.72.0",
+        "oxlint-tsgolint": "0.24.0",
         "rimraf": "6.1.3",
-        "semantic-release": "25.0.3",
-        "tsdown": "0.22.0",
+        "semantic-release": "25.0.5",
+        "tsdown": "0.22.3",
         "vite-tsconfig-paths": "6.1.1",
-        "vitest": "4.1.5",
+        "vitest": "4.1.9",
         "vitest-mock-extended": "4.0.0"
     },
     "release": {

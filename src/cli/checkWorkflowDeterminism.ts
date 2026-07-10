@@ -165,6 +165,9 @@ export class CheckWorkflowDeterminismCommand {
                         this.logger.warn(`⏰ Workflow ${outcome.workflowId} timed out`)
                         break
                     }
+                    default: {
+                        break
+                    }
                 }
 
                 if (processed % 50 === 0) {
@@ -309,6 +312,9 @@ export class CheckWorkflowDeterminismCommand {
                     },
                 })
                 this.logger.warn(`⏰ Workflow ${workflowId} timed out after ${outcome.timeoutMs / 1000}s — skipping`)
+                break
+            }
+            default: {
                 break
             }
         }

@@ -16,6 +16,18 @@ export {
     ApplicationFailure,
     ChildWorkflowFailure,
     type WorkflowHandleWithFirstExecutionRunId,
+    ActivityClient,
+    type TypedActivityClient,
+    type ActivityHandle,
+    type ActivityExecutionInfo,
+    type ActivityExecutionDescription,
+    ActivityIdConflictPolicy,
+    ActivityIdReusePolicy,
+    type CountActivityExecutions,
+    WithStartWorkflowOperation,
+    WorkflowUpdateStage,
+    type ClientPlugin,
+    type ConnectionPlugin,
 } from '@temporalio/client'
 
 export { TemporalClient } from './services/client.js'

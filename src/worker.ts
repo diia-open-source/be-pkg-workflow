@@ -7,6 +7,9 @@ export {
     type State,
     bundleWorkflowCode,
     Worker,
+    type WorkerDeploymentOptions,
+    type WorkerPlugin,
+    type NativeConnectionPlugin,
 } from '@temporalio/worker'
 
 export * from './interceptors.js'

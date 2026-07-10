@@ -10,4 +10,7 @@ export {
     Context,
     cancellationSignal,
     cancelled,
+    cancellationDetails,
+    getClient,
+    metricMeter,
 } from '@temporalio/activity'

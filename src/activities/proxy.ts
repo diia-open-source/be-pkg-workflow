@@ -1,8 +1,29 @@
 /* oxlint-disable typescript/explicit-function-return-type */
-import { ActivityInterfaceFor, ActivityOptions, proxyActivities, proxyLocalActivities } from '@temporalio/workflow'
+import {
+    ActivityInterfaceFor,
+    ActivityOptions as TemporalActivityOptions,
+    RetryPolicy as TemporalRetryPolicy,
+    proxyActivities,
+    proxyLocalActivities,
+} from '@temporalio/workflow'
 
 type ActivityClass<T> = T extends { prototype: infer P } ? P : never
-type LocalActivityOptions = Parameters<typeof proxyLocalActivities>[0]
+type TemporalLocalActivityOptions = Parameters<typeof proxyLocalActivities>[0]
+
+/**
+ * Retry policy exposed by pkg-workflow.
+ *
+ * `nonRetryableErrorTypes` is intentionally omitted from Temporal's {@link TemporalRetryPolicy}:
+ * services must not mark failures as non-retryable by error type through the activity proxy, so
+ * removing the field here disables the ability to set it via {@link buildActivitiesProxy}.
+ */
+export type RetryPolicy = Omit<TemporalRetryPolicy, 'nonRetryableErrorTypes'>
+
+/** Activity options exposed by pkg-workflow, without {@link RetryPolicy.nonRetryableErrorTypes}. */
+export type ActivityOptions = Omit<TemporalActivityOptions, 'retry'> & { retry?: RetryPolicy }
+
+/** Local activity options exposed by pkg-workflow, without {@link RetryPolicy.nonRetryableErrorTypes}. */
+export type LocalActivityOptions = Omit<TemporalLocalActivityOptions, 'retry'> & { retry?: RetryPolicy }
 
 /**
  * Enhances Temporal activities by prefixing method names with their class name.
@@ -56,16 +77,16 @@ export function buildActivitiesProxy<TActivity extends Record<string, unknown>>(
                 ): ActivityInterfaceFor<A> => {
                     const activities = (useLocalActivitiesProxy ? proxyLocalActivities<A>(options) : proxyActivities<A>(options)) as A
 
-                    return new Proxy({} as Record<string, unknown>, {
-                        get: function (_inner, prop: string): (...args: unknown[]) => Promise<unknown> {
-                            const activityName = `${activityType}.${prop}` as keyof A
-                            const activityFn = activities[activityName] as (...args: unknown[]) => Promise<unknown>
+                    return new Proxy(
+                        {},
+                        {
+                            get: function (_inner, prop: string): (...args: unknown[]) => Promise<unknown> {
+                                const activityName = `${activityType}.${prop}` as keyof A
 
-                            return (...args: unknown[]): Promise<unknown> => {
-                                return activityFn(...args)
-                            }
+                                return activities[activityName] as (...args: unknown[]) => Promise<unknown>
+                            },
                         },
-                    }) as ActivityInterfaceFor<A>
+                    ) as ActivityInterfaceFor<A>
                 }
 
                 return activityWrapper
