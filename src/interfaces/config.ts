@@ -35,10 +35,22 @@ export interface TemporalConfig extends Omit<ClientOptions, 'dataConverter'> {
      * when it shapes config before starting the app.
      */
     disableQueueConsumers?: boolean
+    /**
+     * Whether a standalone worker should advertise no Moleculer actions. It stays a Moleculer client
+     * (outbound `act()` still works), so inbound actions go only to the main service.
+     *
+     * Defaults to `true`. Applied by `runStandaloneWorker` via `applyWorkerProcessConfig`.
+     */
+    disableMoleculerActions?: boolean
 }
 
 export interface AppConfig {
     temporal: TemporalConfig
     metrics: { custom: MetricsConfig }
     rabbit?: QueueConnectionConfig
+    /**
+     * Set by `applyWorkerProcessConfig` for standalone workers; read by diia-app's
+     * `MoleculerService.onInit` to register the node with no actions.
+     */
+    disableMoleculerActions?: boolean
 }

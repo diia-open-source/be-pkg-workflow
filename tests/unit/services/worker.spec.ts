@@ -124,6 +124,24 @@ describe('worker', () => {
             expect(() => applyWorkerProcessConfig(config)).not.toThrow()
         })
 
+        it('should disable Moleculer actions by default', () => {
+            const config = buildConfig()
+
+            applyWorkerProcessConfig(config)
+
+            expect(config.disableMoleculerActions).toBe(true)
+        })
+
+        it('should not disable Moleculer actions when temporal.disableMoleculerActions is false', () => {
+            const config = buildConfig()
+
+            config.temporal.disableMoleculerActions = false
+
+            applyWorkerProcessConfig(config)
+
+            expect(config.disableMoleculerActions).toBeUndefined()
+        })
+
         it('should override metrics port from temporal-worker scraper and disable it', () => {
             const config = buildConfig({
                 metricsPort: 3030,

@@ -90,7 +90,7 @@ export function applyServiceProcessConfig(config: AppConfig): void {
  * Mutates the config object in place. Safe to call when queue config is absent.
  */
 export function applyWorkerProcessConfig(config: AppConfig): void {
-    const { disableQueueConsumers = true } = config.temporal
+    const { disableQueueConsumers = true, disableMoleculerActions = true } = config.temporal
 
     if (disableQueueConsumers && config.rabbit) {
         for (const connectionType of [QueueConnectionType.Internal, QueueConnectionType.External]) {
@@ -99,6 +99,10 @@ export function applyWorkerProcessConfig(config: AppConfig): void {
                 connectionConfig.consumerEnabled = false
             }
         }
+    }
+
+    if (disableMoleculerActions) {
+        config.disableMoleculerActions = true
     }
 
     const workerScraper = config.metrics.custom.scrapers?.find((s) => s.name === 'temporal-worker')
