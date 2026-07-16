@@ -29,4 +29,5 @@ export {
     type SerializationContext,
     type WorkflowSerializationContext,
     type ActivitySerializationContext,
+    type Duration,
 } from '@temporalio/common'
