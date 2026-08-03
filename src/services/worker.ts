@@ -27,6 +27,7 @@ import { AlsData, Logger } from '@diia-inhouse/types'
 
 import { getDataConverter } from '../encryption/index.js'
 import { traceExporter } from '../instrumentation.js'
+import { ActivityTraceLogAttributesInterceptor } from '../interceptors/activityTraceLogAttributes.js'
 import { AsyncLocalStorageBridgeInterceptor } from '../interceptors/asyncLocalStorageBridge.js'
 import { AppConfig } from '../interfaces/config.js'
 import type {
@@ -42,6 +43,7 @@ import type {
 } from '../interfaces/services/worker.js'
 import { buildWorkerIdentity } from './worker/identity.js'
 import { deriveWorkflowTypes, registerWorkerInfo } from './worker/info.js'
+import { toTemporalRuntimeLogger } from './worker/runtimeLogger.js'
 import { WorkerHealthService } from './workerHealth.js'
 
 export type {
@@ -123,10 +125,18 @@ export function toWorkflowsPath(input: string): string {
 /**
  * Builds worker interceptors with OpenTelemetry and AsyncLocalStorage support.
  * OpenTelemetry creates span first, then AsyncLocalStorage bridge extracts traceId.
+ *
+ * Order matters: the first factory is the outermost, so the ones after it see an open span.
  */
 const traceLogAttributesModulePath = path.resolve(import.meta.dirname, '../interceptors/traceLogAttributes')
 
-function buildWorkerInterceptors(
+function traceLogAttributesInterceptor(): ActivityInterceptors {
+    const interceptor = new ActivityTraceLogAttributesInterceptor()
+
+    return { inbound: interceptor, outbound: interceptor }
+}
+
+export function buildWorkerInterceptors(
     tracingEnabled: boolean,
     asyncLocalStorage: AsyncLocalStorage<AlsData> | undefined,
     logger: Logger | undefined,
@@ -145,6 +155,7 @@ function buildWorkerInterceptors(
                     inbound: new OpenTelemetryActivityInboundInterceptor(ctx),
                     outbound: new OpenTelemetryActivityOutboundInterceptor(ctx),
                 }),
+                traceLogAttributesInterceptor,
                 ...(asyncLocalStorage && logger
                     ? [
                           (ctx: ActivityContext): ActivityInterceptors => ({
@@ -164,6 +175,7 @@ function buildWorkerInterceptors(
                     inbound: new AsyncLocalStorageBridgeInterceptor(ctx, asyncLocalStorage, logger),
                     outbound: new OpenTelemetryActivityOutboundInterceptor(ctx),
                 }),
+                traceLogAttributesInterceptor,
             ],
             workflowModules: workflowsPath ? [workflowsPath] : [],
         }
@@ -446,7 +458,7 @@ export async function initWorker(
 
     const runtimeParams: RuntimeOptions = {}
     if (logger) {
-        runtimeParams.logger = logger.child({ taskQueue })
+        runtimeParams.logger = toTemporalRuntimeLogger(logger.child({ taskQueue }))
     }
 
     const temporalMetrics = metricsConfig.scrapers?.find((s) => s.name === 'temporal')
