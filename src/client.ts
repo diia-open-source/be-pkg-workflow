@@ -16,6 +16,7 @@ export {
     ApplicationFailure,
     ChildWorkflowFailure,
     type WorkflowHandleWithFirstExecutionRunId,
+    type WorkflowHandleWithStartDetails,
     ActivityClient,
     type TypedActivityClient,
     type ActivityHandle,
