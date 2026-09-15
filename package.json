@@ -1,6 +1,6 @@
 {
     "name": "@diia-inhouse/workflow",
-    "version": "3.4.17",
+    "version": "3.4.18",
     "description": "Workflow",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -112,7 +112,7 @@
         "@diia-inhouse/diia-queue": "14.2.18",
         "@diia-inhouse/env": "3.3.63",
         "@diia-inhouse/healthcheck": "2.1.119",
-        "@diia-inhouse/oxc-config": "2.1.6",
+        "@diia-inhouse/oxc-config": "2.1.7",
         "@diia-inhouse/test": "8.3.18",
         "@diia-inhouse/types": "14.2.10",
         "@diia-inhouse/utils": "6.1.6",
