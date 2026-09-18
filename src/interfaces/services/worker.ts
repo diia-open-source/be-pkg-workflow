@@ -15,8 +15,8 @@ import { WorkerOptions, WorkerStatus } from '@temporalio/worker'
  * (whose other state is private).
  */
 export interface NodeTracerProviderLike {
-    getTracer(name: string, version?: string, options?: { schemaUrl?: string }): unknown
     resource?: { attributes?: Record<string, unknown> }
+    getTracer(name: string, version?: string, options?: { schemaUrl?: string }): unknown
 }
 
 export type { State, WorkerStatus } from '@temporalio/worker'
