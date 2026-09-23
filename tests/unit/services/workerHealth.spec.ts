@@ -123,6 +123,28 @@ describe('WorkerHealthService', () => {
             expect(result.status).toBe(HttpStatusCode.SERVICE_UNAVAILABLE)
         })
 
+        it('should return OK when the worker has no activities and the activity poller is SHUTDOWN', async () => {
+            const service = new WorkerHealthService(false)
+            const status = createWorkerStatus({ activityPollerState: 'SHUTDOWN', hasOutstandingWorkflowPoll: true })
+
+            service.setStatusProvider(() => status)
+
+            const result = await service.onHealthCheck()
+
+            expect(result.status).toBe(HttpStatusCode.OK)
+        })
+
+        it('should return SERVICE_UNAVAILABLE when the worker has no activities and the workflow poller is FAILED', async () => {
+            const service = new WorkerHealthService(false)
+            const status = createWorkerStatus({ workflowPollerState: 'FAILED', activityPollerState: 'SHUTDOWN' })
+
+            service.setStatusProvider(() => status)
+
+            const result = await service.onHealthCheck()
+
+            expect(result.status).toBe(HttpStatusCode.SERVICE_UNAVAILABLE)
+        })
+
         it('should include worker metrics in details', async () => {
             const service = new WorkerHealthService()
             const status = createWorkerStatus({

@@ -390,7 +390,7 @@ async function runWorker(app: App, options: WorkerRunOptions): Promise<void> {
 
     const healthCheck = tryResolve<HealthCheck>(app.container!, 'healthCheck')
     if (healthCheck) {
-        const workerHealthService = new WorkerHealthService()
+        const workerHealthService = new WorkerHealthService(Object.keys(instantiatedActivities).length > 0)
 
         workerHealthService.setStatusProvider(() => worker.getStatus())
         healthCheck.addHealthCheckable(workerHealthService)

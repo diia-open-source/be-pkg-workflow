@@ -13,22 +13,24 @@ function isPollerHealthy(state: PollerState): boolean {
     return state === 'POLLING'
 }
 
-function isWorkerHealthy(status: WorkerStatus): boolean {
+function isWorkerHealthy(status: WorkerStatus, hasActivities: boolean): boolean {
     const { runState, workflowPollerState, activityPollerState } = status
 
     if (runState !== 'RUNNING') {
         return false
     }
 
-    if (!isPollerHealthy(workflowPollerState) || !isPollerHealthy(activityPollerState)) {
+    if (!isPollerHealthy(workflowPollerState)) {
         return false
     }
 
-    return true
+    return !hasActivities || isPollerHealthy(activityPollerState)
 }
 
 export class WorkerHealthService implements OnHealthCheck {
     private statusProvider?: WorkerStatusProvider
+
+    constructor(private readonly hasActivities = true) {}
 
     setStatusProvider(provider: WorkerStatusProvider): void {
         this.statusProvider = provider
@@ -43,7 +45,7 @@ export class WorkerHealthService implements OnHealthCheck {
         }
 
         const workerStatus = this.statusProvider()
-        const isHealthy = isWorkerHealthy(workerStatus)
+        const isHealthy = isWorkerHealthy(workerStatus, this.hasActivities)
 
         return {
             status: isHealthy ? HttpStatusCode.OK : HttpStatusCode.SERVICE_UNAVAILABLE,
