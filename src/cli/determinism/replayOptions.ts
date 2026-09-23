@@ -5,6 +5,7 @@ import { ReplayWorkerOptions } from '@temporalio/worker'
 import { EnvService } from '@diia-inhouse/env'
 
 import { getDataConverter } from '../../encryption/index.js'
+import { workflowInterceptorModules } from '../../interceptors/workflowModules.js'
 
 export function resolveWorkflowsPath(workflowsPath: string): string {
     const baseDir = path.resolve('./dist')
@@ -23,7 +24,12 @@ export async function buildReplayOptions(
     envService?: EnvService,
 ): Promise<ReplayWorkerOptions> {
     const fullPath = resolveWorkflowsPath(workflowsPath)
-    const options: ReplayWorkerOptions = { workflowsPath: fullPath }
+    const options: ReplayWorkerOptions = {
+        workflowsPath: fullPath,
+        interceptors: {
+            workflowModules: workflowInterceptorModules(fullPath, EnvService.getVar('TRACING_ENABLED', 'boolean', false)),
+        },
+    }
 
     if (encryption.enabled && envService) {
         options.dataConverter = await getDataConverter(encryption.keyId, envService)

@@ -10,7 +10,7 @@ export default defineConfig({
         'src/worker.ts',
         'src/testing.ts',
         'src/nexus.ts',
-        // Loaded at runtime by services/worker.ts via path.resolve, not as a static import,
+        // Loaded at runtime by interceptors/workflowModules.ts via path.resolve, not as a static import,
         // so tsdown won't pick it up unless it's an explicit entry.
         'src/interceptors/traceLogAttributes.ts',
         // CLI entry: referenced by package.json#bin as dist/cli/index.js. Without this entry

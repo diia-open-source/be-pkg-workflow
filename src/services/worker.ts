@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { Resource } from '@opentelemetry/resources'
@@ -29,6 +28,7 @@ import { getDataConverter } from '../encryption/index.js'
 import { traceExporter } from '../instrumentation.js'
 import { ActivityTraceLogAttributesInterceptor } from '../interceptors/activityTraceLogAttributes.js'
 import { AsyncLocalStorageBridgeInterceptor } from '../interceptors/asyncLocalStorageBridge.js'
+import { workflowInterceptorModules } from '../interceptors/workflowModules.js'
 import { AppConfig } from '../interfaces/config.js'
 import type {
     ActivityClass,
@@ -128,8 +128,6 @@ export function toWorkflowsPath(input: string): string {
  *
  * Order matters: the first factory is the outermost, so the ones after it see an open span.
  */
-const traceLogAttributesModulePath = path.resolve(import.meta.dirname, '../interceptors/traceLogAttributes')
-
 function traceLogAttributesInterceptor(): ActivityInterceptors {
     const interceptor = new ActivityTraceLogAttributesInterceptor()
 
@@ -143,12 +141,6 @@ export function buildWorkerInterceptors(
     workflowsPath: string | undefined,
 ): WorkerInterceptors | undefined {
     if (tracingEnabled) {
-        const workflowModules = [traceLogAttributesModulePath]
-
-        if (workflowsPath) {
-            workflowModules.unshift(workflowsPath)
-        }
-
         return {
             activity: [
                 (ctx: ActivityContext): ActivityInterceptors => ({
@@ -164,7 +156,7 @@ export function buildWorkerInterceptors(
                       ]
                     : []),
             ],
-            workflowModules,
+            workflowModules: workflowInterceptorModules(workflowsPath, true),
         }
     }
 
@@ -177,7 +169,7 @@ export function buildWorkerInterceptors(
                 }),
                 traceLogAttributesInterceptor,
             ],
-            workflowModules: workflowsPath ? [workflowsPath] : [],
+            workflowModules: workflowInterceptorModules(workflowsPath, false),
         }
     }
 
