@@ -1,6 +1,6 @@
 {
     "name": "@diia-inhouse/workflow",
-    "version": "3.4.56",
+    "version": "3.4.57",
     "description": "Workflow",
     "license": null,
     "author": "diia-team",
@@ -91,8 +91,8 @@
         "@diia-inhouse/configs": "7.2.3",
         "@diia-inhouse/diia-logger": "4.7.39",
         "@diia-inhouse/diia-metrics": "7.1.166",
-        "@diia-inhouse/diia-queue": "14.2.46",
-        "@diia-inhouse/env": "3.3.105",
+        "@diia-inhouse/diia-queue": "14.2.47",
+        "@diia-inhouse/env": "3.3.106",
         "@diia-inhouse/healthcheck": "2.1.181",
         "@diia-inhouse/oxc-config": "6.1.1",
         "@diia-inhouse/test": "8.4.1",
