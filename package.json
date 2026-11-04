@@ -1,6 +1,6 @@
 {
     "name": "@diia-inhouse/workflow",
-    "version": "3.4.62",
+    "version": "3.4.63",
     "description": "Workflow",
     "license": null,
     "author": "diia-team",
@@ -103,7 +103,7 @@
         "@types/yargs": "17.0.35",
         "@vitest/coverage-v8": "5.0.5",
         "@vitest/ui": "5.0.5",
-        "glob": "13.0.6",
+        "glob": "14.0.2",
         "lockfile-lint": "5.0.0",
         "oxfmt": "0.72.0",
         "oxlint": "1.87.0",
