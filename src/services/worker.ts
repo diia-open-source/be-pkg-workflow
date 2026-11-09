@@ -8,7 +8,7 @@ import {
     OpenTelemetryActivityInboundInterceptor,
     OpenTelemetryActivityOutboundInterceptor,
     makeWorkflowExporter,
-} from '@temporalio/interceptors-opentelemetry/lib/worker/index.js'
+} from '@temporalio/interceptors-opentelemetry/lib/worker'
 import {
     ActivityInterceptors,
     NativeConnection,

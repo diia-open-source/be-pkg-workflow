@@ -1,5 +1,5 @@
 import { Payload, ValueError } from '@temporalio/common'
-import { encode } from '@temporalio/common/lib/encoding.js'
+import { encode } from '@temporalio/common/encoding'
 
 import { DiiaLogger } from '@diia-inhouse/diia-logger'
 import { EnvService, ProcessedTransitKey } from '@diia-inhouse/env'

@@ -1,5 +1,4 @@
 import { WorkerStatus } from '@temporalio/worker'
-import { PollerState } from '@temporalio/worker/lib/worker.js'
 
 import { HealthCheckResult, HttpStatusCode, OnHealthCheck } from '@diia-inhouse/types'
 
@@ -9,7 +8,7 @@ export interface WorkerHealthDetails {
     worker: WorkerStatus | 'NOT_INITIALIZED'
 }
 
-function isPollerHealthy(state: PollerState): boolean {
+function isPollerHealthy(state: WorkerStatus['workflowPollerState']): boolean {
     return state === 'POLLING'
 }
 

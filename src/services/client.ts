@@ -7,7 +7,7 @@ import {
     ScheduleSummary,
     ScheduleUpdateOptions,
 } from '@temporalio/client'
-import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry/lib/client/index.js'
+import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry/lib/client'
 import lodash from 'lodash'
 
 import { EnvService } from '@diia-inhouse/env'

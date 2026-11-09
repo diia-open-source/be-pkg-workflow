@@ -1,7 +1,7 @@
 import { webcrypto as crypto } from 'node:crypto'
 
 import { METADATA_ENCODING_KEY, Payload, PayloadCodec, ValueError } from '@temporalio/common'
-import { decode, encode } from '@temporalio/common/lib/encoding.js'
+import { decode, encode } from '@temporalio/common/encoding'
 import temporalProto from '@temporalio/proto'
 
 import { DiiaLogger } from '@diia-inhouse/diia-logger'
