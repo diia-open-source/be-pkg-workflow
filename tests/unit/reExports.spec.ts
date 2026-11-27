@@ -17,6 +17,12 @@ describe('entry point re-exports', () => {
         expect(clientEntry.WorkflowUpdateStage).toBeDefined()
     })
 
+    it('/client exposes the connection and workflow result errors', () => {
+        expect(clientEntry.Connection).toBeDefined()
+        expect(clientEntry.WorkflowFailedError).toBeDefined()
+        expect(clientEntry.WorkflowUpdateFailedError).toBeDefined()
+    })
+
     it('/common exposes the typed search-attribute helpers', () => {
         expect(commonEntry.SearchAttributeType).toBeDefined()
         expect(commonEntry.TypedSearchAttributes).toBeDefined()
